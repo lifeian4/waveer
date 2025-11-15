@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Mail, User, Phone, ArrowRight, Sparkles, Shield } from "lucide-react";
+import { Mail, User, Phone, ArrowRight, Sparkles, Shield, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,11 +9,10 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 
 const ForgotPassword = () => {
-  const [step, setStep] = useState<"identifier" | "verification" | "code">("identifier");
+  const [step, setStep] = useState<"identifier" | "verification" | "sent">("identifier");
   const [identifier, setIdentifier] = useState("");
   const [loading, setLoading] = useState(false);
   const [verificationAnswer, setVerificationAnswer] = useState("");
-  const [resetCode, setResetCode] = useState("");
   const [email, setEmail] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -98,102 +97,25 @@ const ForgotPassword = () => {
 
     setLoading(true);
     try {
-      // Send reset code to email
-      const resetCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-
-      // Store reset code in a temporary table or use Supabase auth
-      const { error } = await supabase.from("password_reset_codes").insert({
-        email: email,
-        code: resetCode,
-        expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(), // 15 minutes
+      // Use Supabase's built-in password reset email
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
       });
 
       if (error) {
-        console.error("Error storing reset code:", error);
-        // Continue anyway - code is generated
+        throw error;
       }
 
-      // Send email with reset code
-      const { error: emailError } = await supabase.functions.invoke("send-reset-code", {
-        body: {
-          email: email,
-          code: resetCode,
-        },
+      toast({
+        title: "Email Sent!",
+        description: "Check your email for the password reset link",
       });
 
-      if (emailError) {
-        console.error("Email error:", emailError);
-        // Show code in dev mode for testing
-        toast({
-          title: "Code Generated",
-          description: `Reset code: ${resetCode} (Check your email)`,
-        });
-      } else {
-        toast({
-          title: "Code Sent",
-          description: "Check your email for the reset code",
-        });
-      }
-
-      setStep("code");
+      setStep("sent");
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to send reset code",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCodeSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!resetCode) {
-      toast({
-        title: "Error",
-        description: "Please enter the reset code",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      // Verify reset code
-      const { data, error } = await supabase
-        .from("password_reset_codes")
-        .select("*")
-        .eq("email", email)
-        .eq("code", resetCode.toUpperCase())
-        .single();
-
-      if (error || !data) {
-        toast({
-          title: "Invalid Code",
-          description: "The code you entered is invalid or expired",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Check if code is expired
-      if (new Date(data.expires_at) < new Date()) {
-        toast({
-          title: "Code Expired",
-          description: "Please request a new reset code",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Navigate to reset password with email
-      navigate(`/reset-password?email=${encodeURIComponent(email)}&code=${resetCode.toUpperCase()}`);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to verify code",
+        description: error.message || "Failed to send reset email",
         variant: "destructive",
       });
     } finally {
@@ -287,7 +209,7 @@ const ForgotPassword = () => {
             <p className="text-muted-foreground text-sm">
               {step === "identifier" && "Enter your email or username"}
               {step === "verification" && "Answer the security question"}
-              {step === "code" && "Enter the code sent to your email"}
+              {step === "sent" && "Check your email for reset link"}
             </p>
           </motion.div>
 
@@ -370,68 +292,60 @@ const ForgotPassword = () => {
                   className="w-full h-12 text-base font-bold rounded-xl group"
                   disabled={loading}
                 >
-                  {loading ? "Verifying..." : "Verify & Send Code"}
+                  {loading ? "Verifying..." : "Send Reset Link"}
                 </Button>
               </motion.div>
             </form>
           )}
 
-          {/* Step 3: Reset Code */}
-          {step === "code" && (
-            <form onSubmit={handleCodeSubmit} className="space-y-5">
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                <Label htmlFor="code" className="text-foreground font-semibold">
-                  Reset Code
-                </Label>
-                <p className="text-xs text-muted-foreground mt-1 mb-2">
-                  We sent a 6-character code to {email}
+          {/* Step 3: Email Sent Success */}
+          {step === "sent" && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3 }}
+              className="space-y-6"
+            >
+              <div className="flex justify-center">
+                <motion.div
+                  animate={{ scale: [1, 1.1, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="p-4 rounded-full bg-primary/20 border border-primary/40"
+                >
+                  <CheckCircle className="w-12 h-12 text-primary" />
+                </motion.div>
+              </div>
+
+              <div className="text-center space-y-3">
+                <h3 className="text-xl font-bold text-foreground">Email Sent!</h3>
+                <p className="text-muted-foreground">
+                  We've sent a password reset link to <span className="font-semibold text-foreground">{email}</span>
                 </p>
-                <Input
-                  id="code"
-                  type="text"
-                  placeholder="Enter 6-digit code"
-                  value={resetCode}
-                  onChange={(e) => setResetCode(e.target.value.toUpperCase())}
-                  className="h-12 bg-background/50 border-2 focus:border-primary text-center text-lg tracking-widest"
-                  disabled={loading}
-                  maxLength={6}
-                />
-              </motion.div>
+                <p className="text-sm text-muted-foreground">
+                  Click the link in your email to reset your password. The link will expire in 24 hours.
+                </p>
+              </div>
+
+              <div className="bg-primary/10 border border-primary/30 rounded-lg p-4">
+                <p className="text-sm text-muted-foreground">
+                  <strong>Didn't receive the email?</strong> Check your spam folder or try again.
+                </p>
+              </div>
 
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
+                transition={{ delay: 0.5 }}
               >
                 <Button
-                  type="submit"
+                  onClick={() => navigate("/login")}
                   variant="hero"
-                  className="w-full h-12 text-base font-bold rounded-xl group"
-                  disabled={loading}
+                  className="w-full h-12 text-base font-bold rounded-xl"
                 >
-                  {loading ? "Verifying..." : "Reset Password"}
+                  Back to Login
                 </Button>
               </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-                className="text-center"
-              >
-                <button
-                  type="button"
-                  onClick={() => setStep("identifier")}
-                  className="text-sm text-primary hover:underline"
-                >
-                  Back to email/username
-                </button>
-              </motion.div>
-            </form>
+            </motion.div>
           )}
 
           {/* Back to Login */}

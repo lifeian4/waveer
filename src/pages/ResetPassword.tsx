@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Lock, Eye, EyeOff, ArrowRight, Sparkles } from "lucide-react";
+import { Lock, Eye, EyeOff, ArrowRight, Sparkles, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,23 +15,60 @@ const ResetPassword = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isValidLink, setIsValidLink] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const email = searchParams.get("email");
-  const code = searchParams.get("code");
+  // Check if user came from email link (Supabase will handle the session)
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // If no session and no hash params, link is invalid
+      if (!session && !window.location.hash) {
+        setIsValidLink(false);
+      }
+    };
 
-  // Validate that we have required params
-  if (!email || !code) {
+    checkSession();
+  }, []);
+
+  // Validate that we have a valid session or hash params
+  if (!isValidLink) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground mb-2">Invalid Link</h1>
-          <p className="text-muted-foreground mb-6">This password reset link is invalid or expired.</p>
-          <Link to="/login" className="text-primary hover:underline">
-            Back to Login
-          </Link>
-        </div>
+      <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Animated Background */}
+        <motion.div
+          animate={{
+            background: [
+              "radial-gradient(circle at 20% 50%, hsl(188 95% 52% / 0.15) 0%, transparent 50%)",
+              "radial-gradient(circle at 80% 50%, hsl(280 80% 50% / 0.15) 0%, transparent 50%)",
+              "radial-gradient(circle at 20% 50%, hsl(188 95% 52% / 0.15) 0%, transparent 50%)",
+            ],
+          }}
+          transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+          className="absolute inset-0 pointer-events-none"
+        />
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="w-full max-w-md relative z-10"
+        >
+          <div className="bg-card/50 backdrop-blur-xl border border-border rounded-3xl p-8 shadow-2xl text-center">
+            <div className="flex justify-center mb-4">
+              <div className="p-4 rounded-full bg-destructive/10">
+                <AlertCircle className="w-8 h-8 text-destructive" />
+              </div>
+            </div>
+            <h1 className="text-2xl font-bold text-foreground mb-2">Invalid Link</h1>
+            <p className="text-muted-foreground mb-6">This password reset link is invalid or expired.</p>
+            <Link to="/forgot-password" className="text-primary hover:underline font-semibold">
+              Request a new reset link
+            </Link>
+          </div>
+        </motion.div>
       </div>
     );
   }
@@ -68,72 +105,24 @@ const ResetPassword = () => {
 
     setLoading(true);
     try {
-      // Verify the reset code is still valid
-      const { data: resetData, error: resetError } = await supabase
-        .from("password_reset_codes")
-        .select("*")
-        .eq("email", email)
-        .eq("code", code)
-        .single();
+      // Update password using Supabase auth
+      // The user session is already established from the email link
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: password,
+      });
 
-      if (resetError || !resetData) {
-        toast({
-          title: "Error",
-          description: "Invalid or expired reset code",
-          variant: "destructive",
-        });
-        return;
+      if (updateError) {
+        throw updateError;
       }
-
-      // Check if code is expired
-      if (new Date(resetData.expires_at) < new Date()) {
-        toast({
-          title: "Error",
-          description: "Reset code has expired",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Update password using Supabase admin API
-      // First, get the user by email
-      const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
-
-      if (userError) {
-        // Fallback: Use updateUser with email
-        const { error: updateError } = await supabase.auth.updateUser({
-          password: password,
-        });
-
-        if (updateError) {
-          throw updateError;
-        }
-      } else {
-        // Find user by email
-        const user = userData?.users.find((u) => u.email === email);
-        if (!user) {
-          throw new Error("User not found");
-        }
-
-        // Update password
-        const { error: updateError } = await supabase.auth.admin.updateUserById(user.id, {
-          password: password,
-        });
-
-        if (updateError) {
-          throw updateError;
-        }
-      }
-
-      // Delete the used reset code
-      await supabase.from("password_reset_codes").delete().eq("code", code);
 
       toast({
         title: "Success!",
         description: "Your password has been reset. You can now login.",
       });
 
-      // Redirect to login
+      // Sign out and redirect to login
+      await supabase.auth.signOut();
+      
       setTimeout(() => {
         navigate("/login");
       }, 2000);
