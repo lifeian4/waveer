@@ -15,7 +15,7 @@ const PageWrapper = ({ children }: PageWrapperProps) => {
       <AnimatePresence mode="wait">
         {isLoading && <Preloader />}
       </AnimatePresence>
-      {!isLoading && children}
+      {children}
     </>
   );
 };
