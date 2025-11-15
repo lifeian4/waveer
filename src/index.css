@@ -1,0 +1,113 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 220 40% 3%;
+    --foreground: 210 40% 98%;
+
+    --card: 220 35% 6%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 220 35% 8%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 0 84% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 30% 12%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 220 25% 15%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 188 95% 52%;
+    --accent-foreground: 220 40% 3%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 25% 15%;
+    --input: 220 25% 15%;
+    --ring: 188 95% 52%;
+
+    --radius: 0.75rem;
+    
+    /* Custom design tokens */
+    --hero-gradient-start: 220 40% 3%;
+    --hero-gradient-end: 220 35% 8%;
+    
+    --nav-bg: 220 35% 8%;
+    --nav-bg-blur: 220 35% 8% / 0.8;
+    
+    --liquid-gradient: linear-gradient(135deg, hsl(188 95% 52% / 0.2), hsl(280 80% 50% / 0.2));
+    --glow-cyan: 0 0 40px hsl(188 95% 52% / 0.3);
+    --glow-primary: 0 0 40px hsl(0 84% 60% / 0.3);
+    
+    --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* Dark mode uses same tokens for consistency */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  @keyframes gradient {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  .animate-gradient {
+    animation: gradient 3s ease infinite;
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+}

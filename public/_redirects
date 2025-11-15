@@ -1,0 +1,11 @@
+# Netlify redirects for React SPA
+# This file handles client-side routing for Single Page Applications
+
+# Redirect all routes to index.html for React Router to handle
+/*    /index.html   200
+
+# Optional: Redirect HTTP to HTTPS
+# http://waveer.netlify.app/*   https://waveer.netlify.app/:splat   301!
+
+# Optional: Redirect www to non-www
+# https://www.waveer.netlify.app/*   https://waveer.netlify.app/:splat   301!
