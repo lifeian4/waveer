@@ -6,6 +6,7 @@ interface AuthContextType {
   currentUser: User | null;
   session: Session | null;
   signup: (email: string, password: string, displayName: string) => Promise<void>;
+  signupWithPhone: (phone: string, password: string, displayName: string) => Promise<void>;
   login: (identifier: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   loginWithGoogle: () => Promise<void>;
@@ -52,6 +53,34 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         .insert({
           id: data.user.id,
           email: data.user.email!,
+          full_name: displayName,
+          avatar_url: null,
+        });
+
+      if (profileError) console.error('Profile creation error:', profileError);
+    }
+  };
+
+  const signupWithPhone = async (phone: string, password: string, displayName: string) => {
+    const { data, error } = await supabase.auth.signUp({
+      phone,
+      password,
+      options: {
+        data: {
+          full_name: displayName,
+        },
+      },
+    });
+
+    if (error) throw error;
+
+    // Create user profile in profiles table
+    if (data.user) {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: data.user.id,
+          email: data.user.email || `${phone}@phone.local`,
           full_name: displayName,
           avatar_url: null,
         });
@@ -146,6 +175,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     currentUser,
     session,
     signup,
+    signupWithPhone,
     login,
     logout,
     loginWithGoogle,
