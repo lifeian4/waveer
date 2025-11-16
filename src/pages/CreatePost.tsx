@@ -71,6 +71,7 @@ const CreatePost = () => {
   const [showYoutubeResults, setShowYoutubeResults] = useState(false);
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [showMusicModal, setShowMusicModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -736,13 +737,21 @@ const CreatePost = () => {
                         className="mb-6 p-4 bg-primary/10 rounded-lg border border-primary/20"
                       >
                         <div className="flex items-center gap-4">
-                          {musicCoverUrl && (
-                            <img
-                              src={musicCoverUrl}
-                              alt={musicTitle}
-                              className="w-16 h-16 rounded object-cover"
-                            />
-                          )}
+                          <div
+                            className="relative cursor-pointer group"
+                            onClick={() => setShowMusicModal(true)}
+                          >
+                            {musicCoverUrl && (
+                              <img
+                                src={musicCoverUrl}
+                                alt={musicTitle}
+                                className="w-16 h-16 rounded object-cover group-hover:opacity-75 transition-opacity"
+                              />
+                            )}
+                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded">
+                              <Play className="w-6 h-6 text-white" />
+                            </div>
+                          </div>
                           <div className="flex-1">
                             <p className="font-semibold text-sm">{musicTitle}</p>
                             {musicArtist && (
@@ -755,41 +764,120 @@ const CreatePost = () => {
                                 rel="noopener noreferrer"
                                 className="text-xs text-primary hover:underline"
                               >
-                                Open on Spotify →
+                                Open on YouTube →
                               </a>
                             </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => playPreview(musicPreviewUrl)}
-                              className="h-9 w-9 p-0"
-                              title={musicPreviewUrl ? "Play preview" : "No preview available"}
-                            >
-                              {isPlayingPreview ? (
-                                <Pause className="w-4 h-4" />
-                              ) : (
-                                <Play className="w-4 h-4" />
-                              )}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={toggleMute}
-                              className="h-9 w-9 p-0"
-                              title={isMuted ? "Unmute" : "Mute"}
-                            >
-                              {isMuted ? (
-                                <VolumeX className="w-4 h-4" />
-                              ) : (
-                                <Volume2 className="w-4 h-4" />
-                              )}
-                            </Button>
                           </div>
                         </div>
                       </motion.div>
                     )}
+
+                    {/* Music Modal */}
+                    <AnimatePresence>
+                      {showMusicModal && musicCoverUrl && (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          onClick={() => setShowMusicModal(false)}
+                          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+                        >
+                          <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="bg-card rounded-lg overflow-hidden max-w-2xl w-full"
+                          >
+                            {/* Video/Thumbnail */}
+                            <div className="relative bg-black aspect-video">
+                              <img
+                                src={musicCoverUrl}
+                                alt={musicTitle}
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                <Button
+                                  size="lg"
+                                  className="rounded-full w-16 h-16 p-0"
+                                  onClick={() => playPreview(musicPreviewUrl)}
+                                >
+                                  {isPlayingPreview ? (
+                                    <Pause className="w-8 h-8" />
+                                  ) : (
+                                    <Play className="w-8 h-8" />
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+
+                            {/* Info */}
+                            <div className="p-6">
+                              <h3 className="text-xl font-bold mb-2">{musicTitle}</h3>
+                              <p className="text-muted-foreground mb-4">{musicArtist}</p>
+
+                              {/* Controls */}
+                              <div className="flex gap-3 mb-4">
+                                <Button
+                                  variant="outline"
+                                  onClick={() => playPreview(musicPreviewUrl)}
+                                  className="flex-1"
+                                >
+                                  {isPlayingPreview ? (
+                                    <>
+                                      <Pause className="w-4 h-4 mr-2" />
+                                      Pause
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Play className="w-4 h-4 mr-2" />
+                                      Play
+                                    </>
+                                  )}
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  onClick={toggleMute}
+                                  className="flex-1"
+                                >
+                                  {isMuted ? (
+                                    <>
+                                      <VolumeX className="w-4 h-4 mr-2" />
+                                      Unmute
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Volume2 className="w-4 h-4 mr-2" />
+                                      Mute
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+
+                              {/* YouTube Link */}
+                              <a
+                                href={musicUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 text-primary hover:underline text-sm"
+                              >
+                                Watch on YouTube →
+                              </a>
+                            </div>
+
+                            {/* Close Button */}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="absolute top-4 right-4"
+                              onClick={() => setShowMusicModal(false)}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </motion.div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
 
                     {/* Upload Progress */}
                     {uploading && (

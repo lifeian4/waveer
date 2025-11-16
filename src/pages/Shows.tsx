@@ -17,7 +17,8 @@ import {
   Eye,
   ChevronUp,
   ChevronDown,
-  X
+  X,
+  Music
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -72,7 +73,10 @@ const Shows = () => {
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [viewedPosts, setViewedPosts] = useState<Set<string>>(new Set());
   const [autoSlide, setAutoSlide] = useState(false);
+  const [playingMusic, setPlayingMusic] = useState<string | null>(null);
+  const [mutedMusic, setMutedMusic] = useState<Set<string>>(new Set());
   const videoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({});
+  const audioRefs = useRef<{ [key: string]: HTMLAudioElement | null }>({});
   const postRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const autoSlideIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { currentUser } = useAuth();
@@ -465,6 +469,42 @@ const Shows = () => {
     return `${minutes}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const handleMusicPlay = (postId: string, musicUrl: string) => {
+    const audio = audioRefs.current[postId];
+    if (!audio) return;
+
+    if (playingMusic === postId) {
+      audio.pause();
+      setPlayingMusic(null);
+    } else {
+      // Pause all other music
+      Object.entries(audioRefs.current).forEach(([id, a]) => {
+        if (a && id !== postId) {
+          a.pause();
+        }
+      });
+      audio.src = musicUrl;
+      audio.volume = mutedMusic.has(postId) ? 0 : 1;
+      audio.play();
+      setPlayingMusic(postId);
+    }
+  };
+
+  const toggleMusicMute = (postId: string) => {
+    const audio = audioRefs.current[postId];
+    setMutedMusic(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(postId)) {
+        newSet.delete(postId);
+        if (audio) audio.volume = 1;
+      } else {
+        newSet.add(postId);
+        if (audio) audio.volume = 0;
+      }
+      return newSet;
+    });
+  };
+
   if (loading) {
     return (
       <>
@@ -729,25 +769,60 @@ const Shows = () => {
                           )}
                           {post.music_url && (
                             <div className="mt-2 pt-2 border-t border-gray-700">
-                              <p className="text-xs text-primary font-semibold mb-1">
-                                🎵 {post.music_title || 'Music'}
-                              </p>
-                              {post.music_url.includes('spotify.com') ? (
-                                <iframe
-                                  src={`https://open.spotify.com/embed/track/${post.music_url.split('/').pop()?.split('?')[0]}`}
-                                  width="100%"
-                                  height="80"
-                                  frameBorder="0"
-                                  allowTransparency={true}
-                                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                                  className="rounded"
-                                />
+                              <div className="flex items-center justify-between mb-2">
+                                <p className="text-xs text-primary font-semibold">
+                                  <Music className="w-3 h-3 inline mr-1" />
+                                  {post.music_title || 'Music'}
+                                </p>
+                                <div className="flex gap-1">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-6 w-6 p-0"
+                                    onClick={() => handleMusicPlay(post.id, post.music_url)}
+                                  >
+                                    {playingMusic === post.id ? (
+                                      <Pause className="w-3 h-3" />
+                                    ) : (
+                                      <Play className="w-3 h-3" />
+                                    )}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-6 w-6 p-0"
+                                    onClick={() => toggleMusicMute(post.id)}
+                                  >
+                                    {mutedMusic.has(post.id) ? (
+                                      <VolumeX className="w-3 h-3" />
+                                    ) : (
+                                      <Volume2 className="w-3 h-3" />
+                                    )}
+                                  </Button>
+                                </div>
+                              </div>
+                              <audio
+                                ref={(el) => audioRefs.current[post.id] = el}
+                                onEnded={() => setPlayingMusic(null)}
+                              />
+                              {post.music_url.includes('youtube.com') || post.music_url.includes('youtu.be') ? (
+                                <a
+                                  href={post.music_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-blue-400 hover:underline"
+                                >
+                                  Watch on YouTube →
+                                </a>
                               ) : (
-                                <audio
-                                  src={post.music_url}
-                                  controls
-                                  className="w-full h-8"
-                                />
+                                <a
+                                  href={post.music_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-blue-400 hover:underline"
+                                >
+                                  Open Link →
+                                </a>
                               )}
                             </div>
                           )}
