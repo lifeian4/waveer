@@ -14,7 +14,11 @@ import {
   Clock,
   CheckCircle2,
   Music,
-  Search as SearchIcon
+  Search as SearchIcon,
+  Volume2,
+  VolumeX,
+  Play,
+  Pause
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -59,10 +63,14 @@ const CreatePost = () => {
   const [spotifyResults, setSpotifyResults] = useState<SpotifyTrack[]>([]);
   const [searchingSpotify, setSearchingSpotify] = useState(false);
   const [showSpotifyResults, setShowSpotifyResults] = useState(false);
+  const [isPlayingPreview, setIsPlayingPreview] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+  const searchTimeoutRef = useRef<NodeJS.Timeout>();
 
 
   const MAX_VIDEO_DURATION = 3600; // 1 hour in seconds
@@ -72,10 +80,10 @@ const CreatePost = () => {
   const searchSpotify = async (query: string) => {
     if (!query.trim()) {
       setSpotifyResults([]);
+      setShowSpotifyResults(false);
       return;
     }
 
-    setSearchingSpotify(true);
     try {
       const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
       const clientSecret = import.meta.env.VITE_SPOTIFY_CLIENT_SECRET;
@@ -122,8 +130,32 @@ const CreatePost = () => {
     } catch (error) {
       console.error("Spotify search error:", error);
       toast.error("Failed to search Spotify. Please check your credentials.");
-    } finally {
-      setSearchingSpotify(false);
+    }
+  };
+
+  const playPreview = (previewUrl: string | null) => {
+    if (!previewUrl) {
+      toast.error("No preview available for this track");
+      return;
+    }
+
+    if (audioRef.current) {
+      if (isPlayingPreview) {
+        audioRef.current.pause();
+        setIsPlayingPreview(false);
+      } else {
+        audioRef.current.src = previewUrl;
+        audioRef.current.volume = isMuted ? 0 : 1;
+        audioRef.current.play();
+        setIsPlayingPreview(true);
+      }
+    }
+  };
+
+  const toggleMute = () => {
+    if (audioRef.current) {
+      audioRef.current.volume = isMuted ? 1 : 0;
+      setIsMuted(!isMuted);
     }
   };
 
@@ -319,6 +351,7 @@ const CreatePost = () => {
 
   return (
     <>
+      <audio ref={audioRef} onEnded={() => setIsPlayingPreview(false)} />
       <Navigation />
       <PageWrapper>
         <div className="min-h-screen bg-background py-8 px-4 pt-24 md:pt-28">
@@ -564,7 +597,7 @@ const CreatePost = () => {
                     <div className="mb-6">
                       <Label htmlFor="hashtags" className="flex items-center gap-2 mb-2">
                         <Sparkles className="w-4 h-4" />
-                        Hashtags
+                        Hashtags (Optional)
                       </Label>
                       <Input
                         id="hashtags"
@@ -583,27 +616,41 @@ const CreatePost = () => {
                     <div className="mb-6">
                       <Label htmlFor="spotifySearch" className="flex items-center gap-2 mb-2">
                         <Music className="w-4 h-4" />
-                        Search Spotify Music
+                        Search Spotify Music (Optional)
                       </Label>
                       <div className="relative">
                         <div className="flex gap-2">
                           <div className="relative flex-1">
                             <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            {searchingSpotify && (
+                              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                              </div>
+                            )}
                             <Input
                               id="spotifySearch"
                               placeholder="Search for songs, artists..."
                               value={spotifySearch}
                               onChange={(e) => {
                                 setSpotifySearch(e.target.value);
+                                
+                                // Clear previous timeout
+                                if (searchTimeoutRef.current) {
+                                  clearTimeout(searchTimeoutRef.current);
+                                }
+                                
                                 if (e.target.value.trim()) {
-                                  const timer = setTimeout(() => {
+                                  // Debounce search with 500ms delay
+                                  searchTimeoutRef.current = setTimeout(() => {
                                     searchSpotify(e.target.value);
                                   }, 500);
-                                  return () => clearTimeout(timer);
+                                } else {
+                                  setSpotifyResults([]);
+                                  setShowSpotifyResults(false);
                                 }
                               }}
-                              disabled={uploading || searchingSpotify}
-                              className="pl-10"
+                              disabled={uploading}
+                              className="pl-10 pr-10"
                             />
                           </div>
                           {musicTitle && (
@@ -616,6 +663,9 @@ const CreatePost = () => {
                                 setMusicUrl("");
                                 setMusicId("");
                                 setMusicCoverUrl("");
+                                setSpotifySearch("");
+                                setSpotifyResults([]);
+                                setShowSpotifyResults(false);
                               }}
                               disabled={uploading}
                             >
@@ -634,9 +684,7 @@ const CreatePost = () => {
                             {spotifyResults.map((track) => (
                               <motion.div
                                 key={track.id}
-                                whileHover={{ backgroundColor: "var(--accent)" }}
-                                onClick={() => selectTrack(track)}
-                                className="p-3 cursor-pointer border-b last:border-b-0 flex items-center gap-3 hover:bg-accent transition-colors"
+                                className="p-3 border-b last:border-b-0 flex items-center gap-3 hover:bg-accent transition-colors group"
                               >
                                 {track.album.images[0] && (
                                   <img
@@ -645,11 +693,47 @@ const CreatePost = () => {
                                     className="w-10 h-10 rounded object-cover"
                                   />
                                 )}
-                                <div className="flex-1 min-w-0">
+                                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => selectTrack(track)}>
                                   <p className="font-medium text-sm truncate">{track.name}</p>
                                   <p className="text-xs text-muted-foreground truncate">
                                     {track.artists.map((a) => a.name).join(", ")}
                                   </p>
+                                </div>
+                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  {track.preview_url && (
+                                    <>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          playPreview(track.preview_url);
+                                        }}
+                                        className="h-8 w-8 p-0"
+                                      >
+                                        {isPlayingPreview ? (
+                                          <Pause className="w-4 h-4" />
+                                        ) : (
+                                          <Play className="w-4 h-4" />
+                                        )}
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          toggleMute();
+                                        }}
+                                        className="h-8 w-8 p-0"
+                                      >
+                                        {isMuted ? (
+                                          <VolumeX className="w-4 h-4" />
+                                        ) : (
+                                          <Volume2 className="w-4 h-4" />
+                                        )}
+                                      </Button>
+                                    </>
+                                  )}
                                 </div>
                               </motion.div>
                             ))}
@@ -678,14 +762,42 @@ const CreatePost = () => {
                             {musicArtist && (
                               <p className="text-sm text-muted-foreground">{musicArtist}</p>
                             )}
-                            <a
-                              href={musicUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-primary hover:underline mt-1 inline-block"
+                            <div className="flex items-center gap-2 mt-2">
+                              <a
+                                href={musicUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-primary hover:underline"
+                              >
+                                Open on Spotify →
+                              </a>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => playPreview(musicUrl)}
+                              className="h-9 w-9 p-0"
                             >
-                              Open on Spotify →
-                            </a>
+                              {isPlayingPreview ? (
+                                <Pause className="w-4 h-4" />
+                              ) : (
+                                <Play className="w-4 h-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={toggleMute}
+                              className="h-9 w-9 p-0"
+                            >
+                              {isMuted ? (
+                                <VolumeX className="w-4 h-4" />
+                              ) : (
+                                <Volume2 className="w-4 h-4" />
+                              )}
+                            </Button>
                           </div>
                         </div>
                       </motion.div>
