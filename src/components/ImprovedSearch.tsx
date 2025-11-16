@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, Film, Tv, User, MapPin } from "lucide-react";
+import { Search, X, Film, Tv, User, MapPin, Play } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { searchMovies, searchTVShows, getPosterUrl, type Movie, type TVShow } from "@/lib/tmdb";
@@ -23,11 +23,26 @@ interface UserResult {
   country_name?: string;
 }
 
+interface PostResult {
+  id: string;
+  title?: string;
+  caption?: string;
+  media_url?: string;
+  media_type?: string;
+  user_id?: string;
+  profile?: {
+    display_name?: string;
+    full_name?: string;
+    avatar_url?: string;
+  };
+}
+
 const ImprovedSearch = ({ isOpen, onClose }: ImprovedSearchProps) => {
   const [query, setQuery] = useState("");
   const [movies, setMovies] = useState<Movie[]>([]);
   const [tvShows, setTVShows] = useState<TVShow[]>([]);
   const [users, setUsers] = useState<UserResult[]>([]);
+  const [posts, setPosts] = useState<PostResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const navigate = useNavigate();
 
@@ -37,6 +52,7 @@ const ImprovedSearch = ({ isOpen, onClose }: ImprovedSearchProps) => {
         setMovies([]);
         setTVShows([]);
         setUsers([]);
+        setPosts([]);
         return;
       }
 
@@ -51,9 +67,13 @@ const ImprovedSearch = ({ isOpen, onClose }: ImprovedSearchProps) => {
         // Search users with error handling
         const userResults = await searchUsersRobust(query);
 
+        // Search posts by title and caption
+        const postResults = await searchPostsRobust(query);
+
         setMovies(movieResults.slice(0, 4));
         setTVShows(tvResults.slice(0, 4));
         setUsers(userResults);
+        setPosts(postResults);
       } catch (error) {
         console.error('Search error:', error);
       } finally {
@@ -130,7 +150,7 @@ const ImprovedSearch = ({ isOpen, onClose }: ImprovedSearchProps) => {
         .from('profiles')
         .select(selectColumns)
         .or(orCondition)
-        .limit(6);
+        .limit(6) as { data: UserResult[] | null; error: any };
 
       if (error) {
         console.error('Error searching users:', error);
@@ -141,6 +161,44 @@ const ImprovedSearch = ({ isOpen, onClose }: ImprovedSearchProps) => {
       return data || [];
     } catch (error) {
       console.error('Error in searchUsersRobust:', error);
+      return [];
+    }
+  };
+
+  // Search posts by title and caption
+  const searchPostsRobust = async (searchQuery: string): Promise<PostResult[]> => {
+    try {
+      console.log('Searching posts with query:', searchQuery);
+
+      const { data, error } = await supabase
+        .from('posts')
+        .select(`
+          id,
+          title,
+          caption,
+          media_url,
+          media_type,
+          user_id,
+          profiles(display_name, full_name, avatar_url)
+        `)
+        .or(`title.ilike.%${searchQuery}%,caption.ilike.%${searchQuery}%`)
+        .limit(6);
+
+      if (error) {
+        console.error('Error searching posts:', error);
+        return [];
+      }
+
+      // Map the response to match PostResult interface
+      const mappedData = data?.map((post: any) => ({
+        ...post,
+        profile: post.profiles ? post.profiles[0] : undefined
+      })) || [];
+
+      console.log('Found posts:', mappedData.length || 0);
+      return mappedData;
+    } catch (error) {
+      console.error('Error in searchPostsRobust:', error);
       return [];
     }
   };
@@ -157,6 +215,11 @@ const ImprovedSearch = ({ isOpen, onClose }: ImprovedSearchProps) => {
 
   const handleUserClick = (userId: string) => {
     navigate(`/profile/${userId}`);
+    onClose();
+  };
+
+  const handlePostClick = (postId: string) => {
+    navigate(`/shows`);
     onClose();
   };
 
@@ -183,7 +246,7 @@ const ImprovedSearch = ({ isOpen, onClose }: ImprovedSearchProps) => {
               <Search className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Search movies, TV shows, users..."
+                placeholder="Search movies, TV shows, users, posts..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 autoFocus
@@ -360,8 +423,65 @@ const ImprovedSearch = ({ isOpen, onClose }: ImprovedSearchProps) => {
                   </motion.div>
                 )}
 
+                {/* Posts Section */}
+                {posts.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                  >
+                    <div className="flex items-center gap-2 mb-4">
+                      <Play className="w-5 h-5 text-primary" />
+                      <h3 className="text-lg sm:text-xl font-bold">Posts</h3>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                      {posts.map((post, index) => (
+                        <motion.div
+                          key={post.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.05 * index }}
+                          onClick={() => handlePostClick(post.id)}
+                          className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl hover:bg-muted cursor-pointer transition-all group border border-transparent hover:border-primary/20"
+                        >
+                          {post.media_url && (
+                            <img
+                              src={post.media_url}
+                              alt={post.title || post.caption}
+                              className="w-14 h-20 sm:w-16 sm:h-24 object-cover rounded-lg shadow-lg flex-shrink-0"
+                            />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            {post.title && (
+                              <h4 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                                {post.title}
+                              </h4>
+                            )}
+                            <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                              {post.caption || "No caption"}
+                            </p>
+                            {post.profile && (
+                              <div className="flex items-center gap-2 mt-2">
+                                <Avatar className="w-5 h-5">
+                                  <AvatarImage src={post.profile.avatar_url} />
+                                  <AvatarFallback className="text-xs">
+                                    {post.profile.display_name?.charAt(0) || post.profile.full_name?.charAt(0) || "U"}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="text-xs text-muted-foreground">
+                                  {post.profile.display_name || post.profile.full_name || "User"}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+
                 {/* No Results */}
-                {movies.length === 0 && tvShows.length === 0 && users.length === 0 && (
+                {movies.length === 0 && tvShows.length === 0 && users.length === 0 && posts.length === 0 && (
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -372,7 +492,7 @@ const ImprovedSearch = ({ isOpen, onClose }: ImprovedSearchProps) => {
                       No results found for "{query}"
                     </p>
                     <p className="text-sm text-muted-foreground mt-2">
-                      Try searching for movies, TV shows, or users
+                      Try searching for movies, TV shows, users, or posts
                     </p>
                   </motion.div>
                 )}
@@ -389,7 +509,7 @@ const ImprovedSearch = ({ isOpen, onClose }: ImprovedSearchProps) => {
                 <Search className="w-16 h-16 text-primary mx-auto mb-4" />
                 <h3 className="text-xl font-bold mb-2">Search Everything</h3>
                 <p className="text-muted-foreground">
-                  Find movies, TV shows, and users
+                  Find movies, TV shows, users, and posts
                 </p>
               </motion.div>
             )}
