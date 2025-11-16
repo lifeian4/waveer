@@ -10,7 +10,6 @@ import TrendingSection from "@/components/TrendingSection";
 import NewReleasesSection from "@/components/NewReleasesSection";
 import Footer from "@/components/Footer";
 import PageWrapper from "@/components/PageWrapper";
-import FloatingChatNew from "@/components/FloatingChatNew";
 import { Button } from "@/components/ui/button";
 
 
@@ -228,8 +227,6 @@ const Index = () => {
         
       </div>
 
-      {/* Floating Chat Button - Only for authenticated users */}
-      {currentUser && <FloatingChatNew />}
     </PageWrapper>
   );
 };
