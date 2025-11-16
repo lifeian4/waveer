@@ -54,6 +54,7 @@ const CreatePost = () => {
   const [musicArtist, setMusicArtist] = useState("");
   const [musicId, setMusicId] = useState("");
   const [musicCoverUrl, setMusicCoverUrl] = useState("");
+  const [musicPreviewUrl, setMusicPreviewUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string>("");
   const [uploading, setUploading] = useState(false);
@@ -140,13 +141,18 @@ const CreatePost = () => {
     }
 
     if (audioRef.current) {
-      if (isPlayingPreview) {
+      if (isPlayingPreview && audioRef.current.src === previewUrl) {
+        // If already playing this track, pause it
         audioRef.current.pause();
         setIsPlayingPreview(false);
       } else {
+        // Play the preview
         audioRef.current.src = previewUrl;
         audioRef.current.volume = isMuted ? 0 : 1;
-        audioRef.current.play();
+        audioRef.current.play().catch((error) => {
+          console.error("Error playing preview:", error);
+          toast.error("Could not play preview");
+        });
         setIsPlayingPreview(true);
       }
     }
@@ -165,6 +171,7 @@ const CreatePost = () => {
     setMusicUrl(track.external_urls.spotify);
     setMusicId(track.id);
     setMusicCoverUrl(track.album.images[0]?.url || "");
+    setMusicPreviewUrl(track.preview_url || "");
     setShowSpotifyResults(false);
     setSpotifySearch("");
     toast.success("Track selected!");
@@ -329,6 +336,7 @@ const CreatePost = () => {
     setMusicArtist("");
     setMusicId("");
     setMusicCoverUrl("");
+    setMusicPreviewUrl("");
     setFile(null);
     setPreview("");
     setVideoDuration(0);
@@ -336,6 +344,11 @@ const CreatePost = () => {
     setSpotifySearch("");
     setSpotifyResults([]);
     setShowSpotifyResults(false);
+    setIsPlayingPreview(false);
+    setIsMuted(false);
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
   };
 
   const formatDuration = (seconds: number) => {
@@ -777,8 +790,9 @@ const CreatePost = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => playPreview(musicUrl)}
+                              onClick={() => playPreview(musicPreviewUrl)}
                               className="h-9 w-9 p-0"
+                              title={musicPreviewUrl ? "Play preview" : "No preview available"}
                             >
                               {isPlayingPreview ? (
                                 <Pause className="w-4 h-4" />
@@ -791,6 +805,7 @@ const CreatePost = () => {
                               size="sm"
                               onClick={toggleMute}
                               className="h-9 w-9 p-0"
+                              title={isMuted ? "Unmute" : "Mute"}
                             >
                               {isMuted ? (
                                 <VolumeX className="w-4 h-4" />
