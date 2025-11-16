@@ -35,6 +35,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Navigation from "@/components/Navigation";
 import PageWrapper from "@/components/PageWrapper";
 import WaveBadge from "@/components/WaveBadge";
+import AgeCounter from "@/components/AgeCounter";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -56,6 +57,7 @@ interface ProfileData {
   github: string;
   is_private: boolean;
   created_at: string;
+  date_of_birth?: string | null;
   subscription_status?: string;
   subscription_plan?: string | null;
   subscription_expires_at?: string | null;
@@ -928,6 +930,13 @@ const Profile = () => {
                       </span>
                     </div>
                   </div>
+
+                  {/* Age Counter - Only show if user has date of birth */}
+                  {profile.date_of_birth && (
+                    <div className="mt-6 max-w-sm">
+                      <AgeCounter dateOfBirth={profile.date_of_birth} />
+                    </div>
+                  )}
                 </>
               )}
             </div>

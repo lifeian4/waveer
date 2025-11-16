@@ -51,7 +51,6 @@ import { useTheme } from "@/contexts/ThemeContext";
 import ImprovedSearch from "./ImprovedSearch";
 import AdjustedBottomNavbar from "./AdjustedBottomNavbar";
 import NotificationsDropdown from "./NotificationsDropdown";
-import AgeCounter from "./AgeCounter";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const Navigation = () => {
@@ -304,10 +303,6 @@ const Navigation = () => {
                         </Button>
                       </div>
                       <DropdownMenuSeparator />
-                      <div className="px-2 py-3 pointer-events-none">
-                        <AgeCounter dateOfBirth={dateOfBirth} />
-                      </div>
-                      <DropdownMenuSeparator />
                       <DropdownMenuGroup>
                         <DropdownMenuItem onClick={() => navigate("/billing")}>
                           <CreditCard className="mr-2 h-4 w-4" />
@@ -443,10 +438,6 @@ const Navigation = () => {
                             </p>
                           </div>
                         </DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <div className="px-2 py-2 pointer-events-none">
-                          <AgeCounter dateOfBirth={dateOfBirth} />
-                        </div>
                         <DropdownMenuSeparator />
                         <DropdownMenuGroup>
                           <DropdownMenuItem onClick={() => navigate("/billing")}>
