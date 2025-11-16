@@ -128,14 +128,19 @@ const CreatePost = () => {
       const searchData = await searchResponse.json();
       const tracks = searchData.tracks?.items || [];
       
+      console.log("Search results:", tracks.length, "tracks found");
+      
       if (tracks.length === 0) {
         toast.info("No tracks found. Try a different search.");
         setSpotifyResults([]);
+        setShowSpotifyResults(false);
         return;
       }
 
       // Get track IDs to fetch full track details with preview URLs
       const trackIds = tracks.map((t: SpotifyTrack) => t.id).join(",");
+      
+      console.log("Fetching details for track IDs:", trackIds);
       
       // Fetch full track details to get preview URLs
       const detailsResponse = await fetch(
@@ -154,16 +159,16 @@ const CreatePost = () => {
       const detailsData = await detailsResponse.json();
       const tracksWithDetails = detailsData.tracks || [];
       
-      // Filter tracks that have preview URLs available
-      const tracksWithPreviews = tracksWithDetails.filter(
-        (track: SpotifyTrack) => track && track.preview_url !== null
-      );
+      console.log("Track details fetched:", tracksWithDetails.length, "tracks");
+      console.log("Tracks with preview:", tracksWithDetails.filter((t: SpotifyTrack) => t?.preview_url).length);
       
-      if (tracksWithPreviews.length === 0) {
-        toast.info("No tracks with previews found. Try a different search.");
+      // Show all tracks first, don't filter by preview
+      if (tracksWithDetails.length === 0) {
+        toast.info("No tracks found. Try a different search.");
         setSpotifyResults([]);
+        setShowSpotifyResults(false);
       } else {
-        setSpotifyResults(tracksWithPreviews);
+        setSpotifyResults(tracksWithDetails);
         setShowSpotifyResults(true);
       }
     } catch (error) {
@@ -174,7 +179,7 @@ const CreatePost = () => {
 
   const playPreview = (previewUrl: string | null) => {
     if (!previewUrl) {
-      toast.error("No preview available for this track");
+      toast.warning("Preview not available for this track");
       return;
     }
 
@@ -189,7 +194,7 @@ const CreatePost = () => {
         audioRef.current.volume = isMuted ? 0 : 1;
         audioRef.current.play().catch((error) => {
           console.error("Error playing preview:", error);
-          toast.error("Could not play preview");
+          toast.error("Could not play preview - track may not have audio");
         });
         setIsPlayingPreview(true);
       }
@@ -745,7 +750,14 @@ const CreatePost = () => {
                                   />
                                 )}
                                 <div className="flex-1 min-w-0 cursor-pointer" onClick={() => selectTrack(track)}>
-                                  <p className="font-medium text-sm truncate">{track.name}</p>
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-medium text-sm truncate">{track.name}</p>
+                                    {track.preview_url && (
+                                      <span className="text-xs bg-green-500/20 text-green-700 px-2 py-0.5 rounded whitespace-nowrap">
+                                        Preview
+                                      </span>
+                                    )}
+                                  </div>
                                   <p className="text-xs text-muted-foreground truncate">
                                     {track.artists.map((a) => a.name).join(", ")}
                                   </p>
