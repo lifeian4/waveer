@@ -36,6 +36,7 @@ import Navigation from "@/components/Navigation";
 import PageWrapper from "@/components/PageWrapper";
 import PostStatsModal from "@/components/PostStatsModal";
 import { formatDistanceToNow } from "date-fns";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Post {
   id: string;
@@ -81,6 +82,31 @@ const Shows = () => {
   const autoSlideIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
+  const touchStartRef = useRef<number>(0);
+  const touchEndRef = useRef<number>(0);
+
+  // Handle swipe gestures
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartRef.current = e.targetTouches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    touchEndRef.current = e.changedTouches[0].clientY;
+    handleSwipe();
+  };
+
+  const handleSwipe = () => {
+    const distance = touchStartRef.current - touchEndRef.current;
+    const isLeftSwipe = distance > 50; // Swipe down (distance > 0)
+    const isRightSwipe = distance < -50; // Swipe up (distance < 0)
+
+    if (isLeftSwipe && currentPostIndex < posts.length - 1) {
+      goToNextPost();
+    } else if (isRightSwipe && currentPostIndex > 0) {
+      goToPreviousPost();
+    }
+  };
 
   useEffect(() => {
     fetchPosts();
@@ -542,8 +568,8 @@ const Shows = () => {
             </p>
           </motion.div>
 
-          {/* Navigation Arrows */}
-          {posts.length > 0 && (
+          {/* Navigation Arrows - Desktop Only */}
+          {posts.length > 0 && !isMobile && (
             <>
               {/* Up Arrow */}
               <motion.button
@@ -582,7 +608,11 @@ const Shows = () => {
               </Button>
             </Card>
           ) : (
-            <div className="w-full max-w-sm">
+            <div 
+              className="w-full max-w-sm"
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+            >
                 {posts.length > 0 && (
                   <motion.div
                     key={posts[currentPostIndex].id}
