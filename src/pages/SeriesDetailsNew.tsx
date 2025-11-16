@@ -21,6 +21,7 @@ import Navigation from "@/components/Navigation";
 import PageWrapper from "@/components/PageWrapper";
 import { useAuth } from "@/contexts/AuthContext";
 import { getTVShowDetails, getBackdropUrl, getPosterUrl, type MediaDetails } from "@/lib/tmdb";
+import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
 const SeriesDetailsNew = () => {
@@ -51,19 +52,53 @@ const SeriesDetailsNew = () => {
   }, [id]);
 
   useEffect(() => {
-    const checkSubscription = () => {
+    const checkSubscription = async () => {
       if (currentUser) {
-        const storedSubscription = localStorage.getItem('user_subscription');
-        if (storedSubscription) {
-          const subscriptionData = JSON.parse(storedSubscription);
-          setUserSubscription(subscriptionData);
-        } else {
+        try {
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('subscription_status, subscription_plan, subscription_expires_at')
+            .eq('id', currentUser.id)
+            .single();
+
+          if (error) throw error;
+
+          setUserSubscription({
+            status: profile?.subscription_status || 'inactive',
+            plan: profile?.subscription_plan || null,
+            expires_at: profile?.subscription_expires_at || null
+          });
+        } catch (error) {
+          console.error('Error fetching subscription:', error);
           setUserSubscription({ status: 'inactive' });
         }
       }
     };
 
     checkSubscription();
+
+    // Real-time subscription updates
+    if (currentUser) {
+      const subscription = supabase
+        .channel('series-profile-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'profiles',
+            filter: `id=eq.${currentUser.id}`
+          },
+          () => {
+            checkSubscription();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(subscription);
+      };
+    }
   }, [currentUser]);
 
   const handlePlay = () => {

@@ -51,6 +51,8 @@ export interface MediaDetails extends Movie, TVShow {
   production_companies?: Array<{ name: string; id: number }>;
   original_language?: string;
   last_air_date?: string;
+  budget?: number;
+  revenue?: number;
 }
 
 // Image URLs

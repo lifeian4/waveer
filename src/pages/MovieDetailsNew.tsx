@@ -19,14 +19,15 @@ import { Badge } from "@/components/ui/badge";
 import Navigation from "@/components/Navigation";
 import PageWrapper from "@/components/PageWrapper";
 import { useAuth } from "@/contexts/AuthContext";
-import { getMovieDetails, getBackdropUrl, getPosterUrl, type MovieDetails } from "@/lib/tmdb";
+import { getMovieDetails, getBackdropUrl, getPosterUrl, type MediaDetails } from "@/lib/tmdb";
+import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
 const MovieDetailsNew = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const [movie, setMovie] = useState<MovieDetails | null>(null);
+  const [movie, setMovie] = useState<MediaDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [userSubscription, setUserSubscription] = useState<any>(null);
   const [isLiked, setIsLiked] = useState(false);
@@ -50,19 +51,53 @@ const MovieDetailsNew = () => {
   }, [id]);
 
   useEffect(() => {
-    const checkSubscription = () => {
+    const checkSubscription = async () => {
       if (currentUser) {
-        const storedSubscription = localStorage.getItem('user_subscription');
-        if (storedSubscription) {
-          const subscriptionData = JSON.parse(storedSubscription);
-          setUserSubscription(subscriptionData);
-        } else {
+        try {
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('subscription_status, subscription_plan, subscription_expires_at')
+            .eq('id', currentUser.id)
+            .single();
+
+          if (error) throw error;
+
+          setUserSubscription({
+            status: profile?.subscription_status || 'inactive',
+            plan: profile?.subscription_plan || null,
+            expires_at: profile?.subscription_expires_at || null
+          });
+        } catch (error) {
+          console.error('Error fetching subscription:', error);
           setUserSubscription({ status: 'inactive' });
         }
       }
     };
 
     checkSubscription();
+
+    // Real-time subscription updates
+    if (currentUser) {
+      const subscription = supabase
+        .channel('movie-profile-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'profiles',
+            filter: `id=eq.${currentUser.id}`
+          },
+          () => {
+            checkSubscription();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(subscription);
+      };
+    }
   }, [currentUser]);
 
   const handlePlay = () => {
@@ -76,8 +111,8 @@ const MovieDetailsNew = () => {
       return;
     }
 
-    // Play the movie
-    toast.success("Playing movie...");
+    // Navigate to watch page
+    navigate(`/watch/${id}`);
   };
 
   const handleWatchTrailer = () => {
@@ -137,7 +172,7 @@ const MovieDetailsNew = () => {
           <div 
             className="absolute inset-0 bg-cover bg-center bg-no-repeat"
             style={{
-              backgroundImage: `url(${getBackdropUrl(movie.backdrop_path, 'original')})`
+              backgroundImage: `url(${getBackdropUrl(movie.backdrop_path)})`
             }}
           />
           
@@ -158,7 +193,7 @@ const MovieDetailsNew = () => {
                 >
                   <div className="relative group">
                     <img
-                      src={getPosterUrl(movie.poster_path, 'w500')}
+                      src={getPosterUrl(movie.poster_path)}
                       alt={movie.title}
                       className="w-80 h-auto rounded-2xl shadow-2xl group-hover:scale-105 transition-transform duration-300"
                     />
@@ -324,18 +359,18 @@ const MovieDetailsNew = () => {
                   </div>
                   <div>
                     <span className="font-semibold">Runtime:</span>
-                    <p className="text-muted-foreground">{movie.runtime} minutes</p>
+                    <p className="text-muted-foreground">{movie.runtime || 'N/A'} minutes</p>
                   </div>
                   <div>
                     <span className="font-semibold">Budget:</span>
                     <p className="text-muted-foreground">
-                      {movie.budget ? `$${movie.budget.toLocaleString()}` : 'N/A'}
+                      {movie.budget && movie.budget > 0 ? `$${movie.budget.toLocaleString()}` : 'N/A'}
                     </p>
                   </div>
                   <div>
                     <span className="font-semibold">Revenue:</span>
                     <p className="text-muted-foreground">
-                      {movie.revenue ? `$${movie.revenue.toLocaleString()}` : 'N/A'}
+                      {movie.revenue && movie.revenue > 0 ? `$${movie.revenue.toLocaleString()}` : 'N/A'}
                     </p>
                   </div>
                 </div>
@@ -347,18 +382,18 @@ const MovieDetailsNew = () => {
                   <div>
                     <span className="font-semibold">Genres:</span>
                     <p className="text-muted-foreground">
-                      {movie.genres.map(g => g.name).join(', ')}
+                      {movie.genres && movie.genres.length > 0 ? movie.genres.map(g => g.name).join(', ') : 'N/A'}
                     </p>
                   </div>
                   <div>
                     <span className="font-semibold">Rating:</span>
-                    <p className="text-muted-foreground">{movie.vote_average}/10</p>
+                    <p className="text-muted-foreground">{movie.vote_average?.toFixed(1) || 'N/A'}/10</p>
                   </div>
                   <div>
                     <span className="font-semibold">Language:</span>
-                    <p className="text-muted-foreground">{movie.original_language.toUpperCase()}</p>
+                    <p className="text-muted-foreground">{movie.original_language ? movie.original_language.toUpperCase() : 'N/A'}</p>
                   </div>
-                  {movie.production_companies.length > 0 && (
+                  {movie.production_companies && movie.production_companies.length > 0 && (
                     <div>
                       <span className="font-semibold">Production:</span>
                       <p className="text-muted-foreground">
