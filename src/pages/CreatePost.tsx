@@ -126,9 +126,37 @@ const CreatePost = () => {
       }
 
       const searchData = await searchResponse.json();
+      const tracks = searchData.tracks?.items || [];
+      
+      if (tracks.length === 0) {
+        toast.info("No tracks found. Try a different search.");
+        setSpotifyResults([]);
+        return;
+      }
+
+      // Get track IDs to fetch full track details with preview URLs
+      const trackIds = tracks.map((t: SpotifyTrack) => t.id).join(",");
+      
+      // Fetch full track details to get preview URLs
+      const detailsResponse = await fetch(
+        `https://api.spotify.com/v1/tracks?ids=${trackIds}`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      if (!detailsResponse.ok) {
+        throw new Error("Failed to fetch track details");
+      }
+
+      const detailsData = await detailsResponse.json();
+      const tracksWithDetails = detailsData.tracks || [];
+      
       // Filter tracks that have preview URLs available
-      const tracksWithPreviews = (searchData.tracks?.items || []).filter(
-        (track: SpotifyTrack) => track.preview_url !== null
+      const tracksWithPreviews = tracksWithDetails.filter(
+        (track: SpotifyTrack) => track && track.preview_url !== null
       );
       
       if (tracksWithPreviews.length === 0) {
