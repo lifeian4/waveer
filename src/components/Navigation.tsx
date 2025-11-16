@@ -308,108 +308,21 @@ const Navigation = () => {
                         <AgeCounter dateOfBirth={dateOfBirth} />
                       </div>
                       <DropdownMenuSeparator />
-                      <nav className="hidden md:flex items-center gap-1">
-                        <Link
-                          to="/"
-                          className="px-4 py-2 rounded-lg text-sm font-medium text-foreground/80 hover:text-foreground hover:bg-accent/10 transition-all duration-200"
-                        >
-                          Home
-                        </Link>
-                        <Link
-                          to="/movies"
-                          className="px-4 py-2 rounded-lg text-sm font-medium text-foreground/80 hover:text-foreground hover:bg-accent/10 transition-all duration-200"
-                        >
-                          Movies
-                        </Link>
-                        <Link
-                          to="/shows"
-                          className="px-4 py-2 rounded-lg text-sm font-medium text-foreground/80 hover:text-foreground hover:bg-accent/10 transition-all duration-200"
-                        >
-                          Waver Shows
-                        </Link>
-                        <Link
-                          to="/music"
-                          className="px-4 py-2 rounded-lg text-sm font-medium text-foreground/80 hover:text-foreground hover:bg-accent/10 transition-all duration-200"
-                        >
-                          Music
-                        </Link>
-                      </nav>
                       <DropdownMenuGroup>
-                        <DropdownMenuItem onClick={() => navigate("/profile")}>
-                          <UserIcon className="mr-2 h-4 w-4" />
-                          <span>Profile</span>
-                          <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
-                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => navigate("/billing")}>
                           <CreditCard className="mr-2 h-4 w-4" />
                           <span>Billing & Plans</span>
-                          <DropdownMenuShortcut>⇧⌘B</DropdownMenuShortcut>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Settings className="mr-2 h-4 w-4" />
-                          <span>Settings</span>
-                          <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => navigate("/security")}>
                           <Shield className="mr-2 h-4 w-4" />
                           <span>Security</span>
-                          <ChevronRight className="ml-auto h-4 w-4" />
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Bell className="mr-2 h-4 w-4" />
-                          <span>Notifications</span>
-                        </DropdownMenuItem>
-                      </DropdownMenuGroup>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuGroup>
-                        <DropdownMenuItem>
-                          <HelpCircle className="mr-2 h-4 w-4" />
-                          <span>Help & Support</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={toggleTheme}>
-                          {theme === "dark" ? (
-                            <>
-                              <Sun className="mr-2 h-4 w-4" />
-                              <span>Light Mode</span>
-                            </>
-                          ) : (
-                            <>
-                              <Moon className="mr-2 h-4 w-4" />
-                              <span>Dark Mode</span>
-                            </>
-                          )}
-                          <DropdownMenuShortcut>⌘T</DropdownMenuShortcut>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Star className="mr-2 h-4 w-4" />
-                          <span>Feedback</span>
                         </DropdownMenuItem>
                       </DropdownMenuGroup>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={handleLogout} className="text-red-500 focus:text-red-500">
                         <LogOut className="mr-2 h-4 w-4" />
                         <span>Log out</span>
-                        <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
                       </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <div className="p-2 text-xs text-muted-foreground flex items-center justify-between">
-                        <span>Account Status</span>
-                        {isVerified ? (
-                          <span className="flex items-center text-green-500">
-                            <div className="w-2 h-2 rounded-full bg-green-500 mr-1"></div>
-                            Verified
-                          </span>
-                        ) : (
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="h-6 text-xs px-2 text-blue-600 border-blue-600 hover:bg-blue-50"
-                            onClick={() => navigate("/verify-account")}
-                          >
-                            Verify Now
-                          </Button>
-                        )}
-                      </div>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </>

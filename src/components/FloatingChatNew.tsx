@@ -20,6 +20,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { formatDistanceToNow } from "date-fns";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Conversation {
   user_id: string;
@@ -35,11 +36,15 @@ interface Conversation {
 export default function FloatingChatNew() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [totalUnread, setTotalUnread] = useState(0);
+
+  // Hide floating chat button on mobile (use top navigation chat icon instead)
+  if (isMobile) return null;
 
   useEffect(() => {
     if (currentUser && isOpen) {
