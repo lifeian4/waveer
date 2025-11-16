@@ -50,6 +50,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import ImprovedSearch from "./ImprovedSearch";
 import AdjustedBottomNavbar from "./AdjustedBottomNavbar";
 import NotificationsDropdown from "./NotificationsDropdown";
+import AgeCounter from "./AgeCounter";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const Navigation = () => {
@@ -58,6 +59,7 @@ const Navigation = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeLink, setActiveLink] = useState("Home");
   const [isVerified, setIsVerified] = useState(false);
+  const [dateOfBirth, setDateOfBirth] = useState<string | null>(null);
   const { currentUser, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
@@ -79,27 +81,30 @@ const Navigation = () => {
     }
   };
 
-  // Check verification status
+  // Check verification status and fetch date of birth
   useEffect(() => {
     const checkVerificationStatus = async () => {
       if (!currentUser) {
         setIsVerified(false);
+        setDateOfBirth(null);
         return;
       }
 
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('is_verified')
+          .select('is_verified, date_of_birth')
           .eq('id', currentUser.id)
           .single();
 
         if (!error && data) {
           setIsVerified(data.is_verified || false);
+          setDateOfBirth(data.date_of_birth || null);
         }
       } catch (error) {
         console.error('Error checking verification status:', error);
         setIsVerified(false);
+        setDateOfBirth(null);
       }
     };
 
@@ -296,6 +301,10 @@ const Navigation = () => {
                         >
                           View Profile
                         </Button>
+                      </div>
+                      <DropdownMenuSeparator />
+                      <div className="px-2 py-3">
+                        <AgeCounter dateOfBirth={dateOfBirth} />
                       </div>
                       <DropdownMenuSeparator />
                       <nav className="hidden md:flex items-center gap-1">

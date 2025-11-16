@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Mail, Lock, User, Chrome, ArrowRight, Sparkles } from "lucide-react";
+import { Mail, Lock, User, Chrome, ArrowRight, Sparkles, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +15,7 @@ const Signup = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [loading, setLoading] = useState(false);
   const { signup, loginWithGoogle } = useAuth();
   const { toast } = useToast();
@@ -23,7 +24,7 @@ const Signup = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name || !username || !email || !password || !confirmPassword) {
+    if (!name || !username || !email || !password || !confirmPassword || !dateOfBirth) {
       toast({
         title: "Error",
         description: "Please fill in all fields",
@@ -70,14 +71,14 @@ const Signup = () => {
     try {
       await signup(email, password, name);
       
-      // Update the user's profile with the username
+      // Update the user's profile with the username and date of birth
       const { error: updateError } = await supabase
         .from("profiles")
-        .update({ username })
+        .update({ username, date_of_birth: dateOfBirth })
         .eq("email", email);
 
       if (updateError) {
-        console.error("Error updating username:", updateError);
+        console.error("Error updating username and date of birth:", updateError);
       }
 
       toast({
@@ -269,6 +270,27 @@ const Signup = () => {
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.48 }}
+            >
+              <Label htmlFor="dateOfBirth" className="text-foreground font-semibold">
+                Date of Birth
+              </Label>
+              <div className="relative mt-2">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  id="dateOfBirth"
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                  className="pl-11 h-12 bg-background/50 border-2 focus:border-primary"
+                  disabled={loading}
+                />
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.5 }}
             >
               <Label htmlFor="password" className="text-foreground font-semibold">
@@ -313,7 +335,7 @@ const Signup = () => {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
+              transition={{ delay: 0.65 }}
             >
               <Button
                 type="submit"
