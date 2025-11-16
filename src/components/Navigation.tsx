@@ -536,49 +536,13 @@ const Navigation = () => {
                         </div>
                         <DropdownMenuSeparator />
                         <DropdownMenuGroup>
-                          <DropdownMenuItem onClick={() => navigate("/profile")}>
-                            <UserIcon className="mr-2 h-4 w-4" />
-                            <span>Profile</span>
-                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => navigate("/billing")}>
                             <CreditCard className="mr-2 h-4 w-4" />
                             <span>Billing & Plans</span>
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Settings className="mr-2 h-4 w-4" />
-                            <span>Settings</span>
-                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => navigate("/security")}>
                             <Shield className="mr-2 h-4 w-4" />
                             <span>Security</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Bell className="mr-2 h-4 w-4" />
-                            <span>Notifications</span>
-                          </DropdownMenuItem>
-                        </DropdownMenuGroup>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuGroup>
-                          <DropdownMenuItem>
-                            <HelpCircle className="mr-2 h-4 w-4" />
-                            <span>Help & Support</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={toggleTheme}>
-                            {theme === "dark" ? (
-                              <>
-                                <Sun className="mr-2 h-4 w-4" />
-                                <span>Light Mode</span>
-                              </>
-                            ) : (
-                              <>
-                                <Moon className="mr-2 h-4 w-4" />
-                                <span>Dark Mode</span>
-                              </>
-                            )}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Star className="mr-2 h-4 w-4" />
-                            <span>Feedback</span>
                           </DropdownMenuItem>
                         </DropdownMenuGroup>
                         <DropdownMenuSeparator />
