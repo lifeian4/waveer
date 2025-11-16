@@ -20,14 +20,14 @@ import { Badge } from "@/components/ui/badge";
 import Navigation from "@/components/Navigation";
 import PageWrapper from "@/components/PageWrapper";
 import { useAuth } from "@/contexts/AuthContext";
-import { getTVShowDetails, getBackdropUrl, getPosterUrl, type TVShowDetails } from "@/lib/tmdb";
+import { getTVShowDetails, getBackdropUrl, getPosterUrl, type MediaDetails } from "@/lib/tmdb";
 import { toast } from "sonner";
 
 const SeriesDetailsNew = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const [series, setSeries] = useState<TVShowDetails | null>(null);
+  const [series, setSeries] = useState<MediaDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [userSubscription, setUserSubscription] = useState<any>(null);
   const [isLiked, setIsLiked] = useState(false);
@@ -77,8 +77,8 @@ const SeriesDetailsNew = () => {
       return;
     }
 
-    // Play the series
-    toast.success("Playing series...");
+    // Navigate to episodes page
+    navigate(`/episodes/${id}`);
   };
 
   const handleWatchTrailer = () => {
@@ -138,7 +138,7 @@ const SeriesDetailsNew = () => {
           <div 
             className="absolute inset-0 bg-cover bg-center bg-no-repeat"
             style={{
-              backgroundImage: `url(${getBackdropUrl(series.backdrop_path, 'original')})`
+              backgroundImage: `url(${getBackdropUrl(series.backdrop_path)})`
             }}
           />
           
@@ -159,7 +159,7 @@ const SeriesDetailsNew = () => {
                 >
                   <div className="relative group">
                     <img
-                      src={getPosterUrl(series.poster_path, 'w500')}
+                      src={getPosterUrl(series.poster_path)}
                       alt={series.name}
                       className="w-80 h-auto rounded-2xl shadow-2xl group-hover:scale-105 transition-transform duration-300"
                     />
@@ -190,15 +190,15 @@ const SeriesDetailsNew = () => {
                     <div className="flex items-center gap-4 mb-6">
                       <Badge className="bg-yellow-500 text-black font-bold">
                         <Star className="w-4 h-4 mr-1" />
-                        {series.vote_average.toFixed(1)}
+                        {series.vote_average?.toFixed(1) || 'N/A'}
                       </Badge>
                       <div className="flex items-center text-white/80">
                         <Calendar className="w-4 h-4 mr-2" />
-                        {new Date(series.first_air_date).getFullYear()}
+                        {series.first_air_date ? new Date(series.first_air_date).getFullYear() : 'N/A'}
                       </div>
                       <div className="flex items-center text-white/80">
                         <Tv className="w-4 h-4 mr-2" />
-                        {series.number_of_seasons} Season{series.number_of_seasons !== 1 ? 's' : ''}
+                        {series.number_of_seasons || 0} Season{(series.number_of_seasons || 0) !== 1 ? 's' : ''}
                       </div>
                       <div className="flex items-center text-white/80">
                         <Clock className="w-4 h-4 mr-2" />
@@ -207,7 +207,7 @@ const SeriesDetailsNew = () => {
                     </div>
 
                     <div className="flex flex-wrap gap-2 mb-6">
-                      {series.genres.map((genre) => (
+                      {series.genres && series.genres.length > 0 && series.genres.map((genre) => (
                         <Badge key={genre.id} variant="outline" className="text-white border-white/30">
                           {genre.name}
                         </Badge>
@@ -307,6 +307,58 @@ const SeriesDetailsNew = () => {
           </div>
         </div>
 
+        {/* Seasons Section */}
+        {series.seasons && series.seasons.length > 0 && (
+          <div className="bg-background/50 py-16 border-t border-border">
+            <div className="max-w-7xl mx-auto px-4">
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8 }}
+              >
+                <h2 className="text-2xl font-bold mb-8">Seasons</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  {series.seasons.map((season: any, index: number) => (
+                    <motion.div
+                      key={season?.season_number || index}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      onClick={() => navigate(`/episodes/${id}/${season?.season_number || 0}`)}
+                      className="group cursor-pointer"
+                    >
+                      <div className="relative overflow-hidden rounded-lg mb-3">
+                        <img
+                          src={season?.poster_path ? `https://image.tmdb.org/t/p/w500${season.poster_path}` : getPosterUrl(series.poster_path)}
+                          alt={season?.name || 'Season'}
+                          className="w-full aspect-[2/3] object-cover group-hover:scale-110 transition-transform duration-300"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                          <Play className="w-12 h-12 text-white fill-white" />
+                        </div>
+                        <div className="absolute top-2 right-2 bg-primary/90 px-2 py-1 rounded text-xs font-semibold">
+                          S{season?.season_number || 0}
+                        </div>
+                      </div>
+                      <h3 className="font-semibold line-clamp-1 group-hover:text-primary transition-colors">
+                        {season?.name || 'Season'}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {season?.episode_count || 0} Episode{(season?.episode_count || 0) !== 1 ? 's' : ''}
+                      </p>
+                      {season?.air_date && (
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(season.air_date).getFullYear()}
+                        </p>
+                      )}
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        )}
+
         {/* Additional Details */}
         <div className="bg-background py-16">
           <div className="max-w-7xl mx-auto px-4">
@@ -319,13 +371,13 @@ const SeriesDetailsNew = () => {
               <div className="md:col-span-2">
                 <h2 className="text-2xl font-bold mb-4">About the Series</h2>
                 <p className="text-muted-foreground leading-relaxed mb-6">
-                  {series.overview}
+                  {series.overview || 'No description available'}
                 </p>
                 
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="font-semibold">First Air Date:</span>
-                    <p className="text-muted-foreground">{new Date(series.first_air_date).toLocaleDateString()}</p>
+                    <p className="text-muted-foreground">{series.first_air_date ? new Date(series.first_air_date).toLocaleDateString() : 'N/A'}</p>
                   </div>
                   <div>
                     <span className="font-semibold">Last Air Date:</span>
@@ -335,11 +387,11 @@ const SeriesDetailsNew = () => {
                   </div>
                   <div>
                     <span className="font-semibold">Status:</span>
-                    <p className="text-muted-foreground">{series.status}</p>
+                    <p className="text-muted-foreground">{series.status || 'N/A'}</p>
                   </div>
                   <div>
                     <span className="font-semibold">Episodes:</span>
-                    <p className="text-muted-foreground">{series.number_of_episodes} total</p>
+                    <p className="text-muted-foreground">{series.number_of_episodes || 0} total</p>
                   </div>
                 </div>
               </div>
@@ -350,22 +402,22 @@ const SeriesDetailsNew = () => {
                   <div>
                     <span className="font-semibold">Genres:</span>
                     <p className="text-muted-foreground">
-                      {series.genres.map(g => g.name).join(', ')}
+                      {series.genres && series.genres.length > 0 ? series.genres.map(g => g.name).join(', ') : 'N/A'}
                     </p>
                   </div>
                   <div>
                     <span className="font-semibold">Rating:</span>
-                    <p className="text-muted-foreground">{series.vote_average}/10</p>
+                    <p className="text-muted-foreground">{series.vote_average?.toFixed(1) || 'N/A'}/10</p>
                   </div>
                   <div>
                     <span className="font-semibold">Language:</span>
-                    <p className="text-muted-foreground">{series.original_language.toUpperCase()}</p>
+                    <p className="text-muted-foreground">{series.original_language ? series.original_language.toUpperCase() : 'N/A'}</p>
                   </div>
                   <div>
                     <span className="font-semibold">Seasons:</span>
-                    <p className="text-muted-foreground">{series.number_of_seasons}</p>
+                    <p className="text-muted-foreground">{series.number_of_seasons || 0}</p>
                   </div>
-                  {series.networks.length > 0 && (
+                  {series.networks && series.networks.length > 0 && (
                     <div>
                       <span className="font-semibold">Network:</span>
                       <p className="text-muted-foreground">
@@ -373,7 +425,7 @@ const SeriesDetailsNew = () => {
                       </p>
                     </div>
                   )}
-                  {series.production_companies.length > 0 && (
+                  {series.production_companies && series.production_companies.length > 0 && (
                     <div>
                       <span className="font-semibold">Production:</span>
                       <p className="text-muted-foreground">

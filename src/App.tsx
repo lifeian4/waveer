@@ -25,6 +25,7 @@ import Payment from "./pages/Payment";
 import PaymentVerification from "./pages/PaymentVerification";
 import Manager from "./pages/Manager";
 import Watch from "./pages/Watch";
+import Episodes from "./pages/Episodes";
 import GoogleAuth from "./pages/GoogleAuth";
 import GoogleCallback from "./pages/GoogleCallback";
 import CreatePost from "./pages/CreatePost";
@@ -88,6 +89,8 @@ const App = () => {
               <Route path="/payment-verification" element={<PaymentVerification />} />
               <Route path="/manager" element={<Manager />} />
               <Route path="/watch/:id" element={<Watch />} />
+              <Route path="/episodes/:id" element={<Episodes />} />
+              <Route path="/episodes/:id/:season" element={<Episodes />} />
               <Route path="/google" element={<GoogleAuth />} />
               <Route path="/google-callback" element={<GoogleCallback />} />
               <Route path="/spotify-callback" element={<SpotifyCallback />} />

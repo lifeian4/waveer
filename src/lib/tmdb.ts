@@ -38,8 +38,19 @@ export interface MediaDetails extends Movie, TVShow {
   episode_run_time?: number[];
   number_of_seasons?: number;
   number_of_episodes?: number;
-  status: string;
-  tagline: string;
+  status?: string;
+  tagline?: string;
+  seasons?: Array<{
+    season_number: number;
+    name: string;
+    episode_count: number;
+    air_date?: string;
+    poster_path?: string;
+  }>;
+  networks?: Array<{ name: string; id: number }>;
+  production_companies?: Array<{ name: string; id: number }>;
+  original_language?: string;
+  last_air_date?: string;
 }
 
 // Image URLs
