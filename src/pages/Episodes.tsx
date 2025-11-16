@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { X, Play } from "lucide-react";
+import Footer from "@/components/Footer";
 import { toast } from "sonner";
 
 interface Season {
@@ -215,6 +216,7 @@ const Episodes = () => {
             ))}
           </div>
         </div>
+        <Footer />
       </div>
     </div>
   );

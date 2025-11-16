@@ -32,6 +32,7 @@ import { uploadToSupabase } from "@/lib/supabaseStorage";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import PageWrapper from "@/components/PageWrapper";
+import Footer from "@/components/Footer";
 
 type PostType = "image" | "video" | null;
 
@@ -682,6 +683,7 @@ const CreatePost = () => {
             </AnimatePresence>
           </div>
         </div>
+        <Footer />
       </PageWrapper>
     </>
   );

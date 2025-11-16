@@ -22,6 +22,7 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import PageWrapper from "@/components/PageWrapper";
+import Footer from "@/components/Footer";
 import { formatDistanceToNow } from "date-fns";
 
 interface Post {
@@ -513,6 +514,7 @@ const PostDetails = () => {
             </Card>
           </div>
         </div>
+        <Footer />
       </PageWrapper>
     </>
   );

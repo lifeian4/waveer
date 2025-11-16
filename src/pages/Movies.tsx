@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import Navigation from "@/components/Navigation";
 import PageWrapper from "@/components/PageWrapper";
+import Footer from "@/components/Footer";
 import { getDiscoverMovies, getGenres, type Movie, type Genre } from "@/lib/tmdb";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -113,6 +114,7 @@ const Movies = () => {
             <MovieDetailsModal movie={selectedMovie} onClose={() => setSelectedMovie(null)} />
           )}
         </main>
+        <Footer />
       </div>
     </PageWrapper>
   );

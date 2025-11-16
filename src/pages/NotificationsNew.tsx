@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Navigation from "@/components/Navigation";
 import PageWrapper from "@/components/PageWrapper";
+import Footer from "@/components/Footer";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 
@@ -427,6 +428,7 @@ const NotificationsNew = () => {
             )}
           </div>
         </div>
+        <Footer />
       </div>
     </PageWrapper>
   );

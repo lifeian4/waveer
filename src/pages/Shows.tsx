@@ -34,6 +34,7 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import PageWrapper from "@/components/PageWrapper";
+import Footer from "@/components/Footer";
 import PostStatsModal from "@/components/PostStatsModal";
 import { formatDistanceToNow } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -878,6 +879,7 @@ const Shows = () => {
             }}
           />
         )}
+        <Footer />
       </PageWrapper>
     </>
   );

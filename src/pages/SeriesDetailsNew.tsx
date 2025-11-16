@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Navigation from "@/components/Navigation";
 import PageWrapper from "@/components/PageWrapper";
+import Footer from "@/components/Footer";
 import { useAuth } from "@/contexts/AuthContext";
 import { getTVShowDetails, getBackdropUrl, getPosterUrl, type MediaDetails } from "@/lib/tmdb";
 import { supabase } from "@/lib/supabase";
@@ -473,6 +474,7 @@ const SeriesDetailsNew = () => {
             </motion.div>
           </div>
         </div>
+        <Footer />
       </div>
     </PageWrapper>
   );
