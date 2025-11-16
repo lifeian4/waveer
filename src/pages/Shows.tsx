@@ -620,14 +620,44 @@ const Shows = () => {
                             </p>
                           </div>
                         </div>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => setAutoSlide(!autoSlide)}
-                          title={autoSlide ? "Stop Auto-Slide" : "Auto-Slide"}
-                        >
-                          <Play className="w-4 h-4" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleBookmark(post.id)}>
+                              <Bookmark className="w-4 h-4 mr-2" />
+                              {post.is_bookmarked ? 'Remove Bookmark' : 'Bookmark'}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setAutoSlide(!autoSlide)}>
+                              <Play className="w-4 h-4 mr-2" />
+                              {autoSlide ? 'Stop Auto-Slide' : 'Auto-Slide'}
+                            </DropdownMenuItem>
+                            {post.user_id === currentUser?.id && (
+                              <DropdownMenuItem 
+                                onClick={() => handleDeletePost(post.id)}
+                                className="text-red-500"
+                              >
+                                <X className="w-4 h-4 mr-2" />
+                                Delete Post
+                              </DropdownMenuItem>
+                            )}
+                            {post.user_id !== currentUser?.id && (
+                              <>
+                                <DropdownMenuItem>
+                                  <Flag className="w-4 h-4 mr-2" />
+                                  Report
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>
+                                  <UserPlus className="w-4 h-4 mr-2" />
+                                  Follow
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
 
                       {/* Post Media - Square Aspect Ratio */}

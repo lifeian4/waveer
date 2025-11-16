@@ -38,6 +38,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Navigation from "@/components/Navigation";
 import PageWrapper from "@/components/PageWrapper";
 import WaveBadge from "@/components/WaveBadge";
+import AgeCounter from "@/components/AgeCounter";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -141,6 +142,7 @@ const Profile = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [userBadge, setUserBadge] = useState<any>(null);
+  const [dateOfBirth, setDateOfBirth] = useState<string | null>(null);
   const itemsPerPage = 10;
 
   // Helper function to format large numbers
@@ -196,6 +198,7 @@ const Profile = () => {
         
         setProfile(data);
         setEditedProfile(data);
+        setDateOfBirth(data.date_of_birth || null);
         
         // Fetch user badge
         const { data: badgeData, error: badgeError } = await supabase
@@ -971,6 +974,18 @@ const Profile = () => {
             </div>
           </div>
         </motion.div>
+
+        {/* Age Counter Section */}
+        {isOwnProfile && dateOfBirth && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-card rounded-xl p-6 border shadow-sm"
+          >
+            <AgeCounter dateOfBirth={dateOfBirth} />
+          </motion.div>
+        )}
 
         {/* Subscription Status Section */}
         {isOwnProfile && (
