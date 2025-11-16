@@ -28,6 +28,7 @@ import {
   Tv,
   Music,
   Plus,
+  MessageCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
@@ -483,7 +484,7 @@ const Navigation = () => {
                 <span className="text-foreground group-hover:text-primary transition-colors duration-300">aver</span>
               </motion.div>
 
-              {/* Mobile Actions - Removed misplaced menu icon */}
+              {/* Mobile Actions */}
               <div className="flex items-center gap-2">
                 <motion.button
                   onClick={() => setIsSearchOpen(true)}
@@ -494,46 +495,100 @@ const Navigation = () => {
                 </motion.button>
 
                 {currentUser ? (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <motion.button
-                        whileTap={{ scale: 0.9 }}
-                        className="flex items-center gap-2 focus:outline-none"
-                      >
-                        <Avatar className="w-8 h-8 border-2 border-primary/50">
-                          <AvatarImage src={currentUser.user_metadata?.avatar_url || undefined} />
-                          <AvatarFallback className="bg-primary/20 text-primary font-bold text-xs">
-                            {currentUser.user_metadata?.full_name?.charAt(0) || currentUser.email?.charAt(0) || "U"}
-                          </AvatarFallback>
-                        </Avatar>
-                      </motion.button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-64" align="end">
-                      <DropdownMenuLabel>
-                        <div className="flex flex-col space-y-1">
-                          <p className="text-sm font-medium leading-none">
-                            {currentUser.user_metadata?.full_name || "User"}
-                          </p>
-                          <p className="text-xs leading-none text-muted-foreground">
-                            {currentUser.email}
-                          </p>
+                  <>
+                    {/* Chat/Message Icon */}
+                    <motion.button
+                      onClick={() => navigate("/chat")}
+                      whileTap={{ scale: 0.9 }}
+                      className="p-2 hover:bg-primary/10 rounded-full transition-all duration-300"
+                    >
+                      <MessageCircle className="w-5 h-5 text-foreground" />
+                    </motion.button>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <motion.button
+                          whileTap={{ scale: 0.9 }}
+                          className="flex items-center gap-2 focus:outline-none"
+                        >
+                          <Avatar className="w-8 h-8 border-2 border-primary/50">
+                            <AvatarImage src={currentUser.user_metadata?.avatar_url || undefined} />
+                            <AvatarFallback className="bg-primary/20 text-primary font-bold text-xs">
+                              {currentUser.user_metadata?.full_name?.charAt(0) || currentUser.email?.charAt(0) || "U"}
+                            </AvatarFallback>
+                          </Avatar>
+                        </motion.button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="w-64" align="end">
+                        <DropdownMenuLabel>
+                          <div className="flex flex-col space-y-1">
+                            <p className="text-sm font-medium leading-none">
+                              {currentUser.user_metadata?.full_name || "User"}
+                            </p>
+                            <p className="text-xs leading-none text-muted-foreground">
+                              {currentUser.email}
+                            </p>
+                          </div>
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <div className="px-2 py-2">
+                          <AgeCounter dateOfBirth={dateOfBirth} />
                         </div>
-                      </DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => navigate("/profile")}>
-                        <UserIcon className="mr-2 h-4 w-4" />
-                        <span>Profile</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate("/billing")}>
-                        <CreditCard className="mr-2 h-4 w-4" />
-                        <span>Billing & Plans</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleLogout} className="text-red-500 focus:text-red-500">
-                        <LogOut className="mr-2 h-4 w-4" />
-                        <span>Log out</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuGroup>
+                          <DropdownMenuItem onClick={() => navigate("/profile")}>
+                            <UserIcon className="mr-2 h-4 w-4" />
+                            <span>Profile</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate("/billing")}>
+                            <CreditCard className="mr-2 h-4 w-4" />
+                            <span>Billing & Plans</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <Settings className="mr-2 h-4 w-4" />
+                            <span>Settings</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate("/security")}>
+                            <Shield className="mr-2 h-4 w-4" />
+                            <span>Security</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <Bell className="mr-2 h-4 w-4" />
+                            <span>Notifications</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuGroup>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuGroup>
+                          <DropdownMenuItem>
+                            <HelpCircle className="mr-2 h-4 w-4" />
+                            <span>Help & Support</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={toggleTheme}>
+                            {theme === "dark" ? (
+                              <>
+                                <Sun className="mr-2 h-4 w-4" />
+                                <span>Light Mode</span>
+                              </>
+                            ) : (
+                              <>
+                                <Moon className="mr-2 h-4 w-4" />
+                                <span>Dark Mode</span>
+                              </>
+                            )}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <Star className="mr-2 h-4 w-4" />
+                            <span>Feedback</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuGroup>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={handleLogout} className="text-red-500 focus:text-red-500">
+                          <LogOut className="mr-2 h-4 w-4" />
+                          <span>Log out</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </>
                 ) : (
                   <Link to="/signup">
                     <Button variant="hero" size="sm" className="rounded-full">

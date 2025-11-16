@@ -84,13 +84,13 @@ const AgeCounter = ({ dateOfBirth }: AgeCounterProps) => {
     <motion.div
       initial={{ scale: 0.8, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
-      className="flex flex-col items-center gap-1"
+      className="flex flex-col items-center gap-0.5"
     >
       <motion.div
         key={value}
         initial={{ y: -10, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="text-lg font-bold text-primary"
+        className="text-sm font-bold text-primary"
       >
         {String(value).padStart(2, "0")}
       </motion.div>
@@ -104,21 +104,21 @@ const AgeCounter = ({ dateOfBirth }: AgeCounterProps) => {
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="w-full bg-gradient-to-br from-primary/10 via-accent/5 to-primary/10 rounded-lg border border-primary/20 p-4 backdrop-blur-sm"
+      className="w-full bg-gradient-to-br from-primary/10 via-accent/5 to-primary/10 rounded-lg border border-primary/20 p-2 backdrop-blur-sm"
     >
-      <div className="flex items-center gap-2 mb-3">
-        <Calendar className="w-4 h-4 text-primary" />
-        <h3 className="text-sm font-semibold text-foreground">Your Age</h3>
+      <div className="flex items-center gap-2 mb-2">
+        <Calendar className="w-3 h-3 text-primary" />
+        <h3 className="text-xs font-semibold text-foreground">Your Age</h3>
       </div>
 
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-4 gap-1">
         <TimeUnit label="Years" value={timeUnits.years} />
         <TimeUnit label="Months" value={timeUnits.months} />
         <TimeUnit label="Weeks" value={timeUnits.weeks} />
         <TimeUnit label="Days" value={timeUnits.days} />
       </div>
 
-      <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-primary/10">
+      <div className="grid grid-cols-3 gap-1 mt-2 pt-2 border-t border-primary/10">
         <TimeUnit label="Hours" value={timeUnits.hours} />
         <TimeUnit label="Minutes" value={timeUnits.minutes} />
         <TimeUnit label="Seconds" value={timeUnits.seconds} />
