@@ -704,7 +704,7 @@ const Profile = () => {
 
   return (
     <PageWrapper>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background pb-32">
         <Navigation />
         
         {/* Back Button - Visible on mobile */}

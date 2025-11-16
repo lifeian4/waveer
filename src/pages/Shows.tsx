@@ -526,7 +526,7 @@ const Shows = () => {
     <>
       <Navigation />
       <PageWrapper>
-        <div className="min-h-screen bg-gradient-to-b from-background to-black py-8 px-4 pt-24 md:pt-28 flex flex-col items-center justify-center relative">
+        <div className="min-h-screen bg-gradient-to-b from-background to-black py-8 px-4 pt-24 md:pt-28 pb-32 flex flex-col items-center justify-center relative">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}

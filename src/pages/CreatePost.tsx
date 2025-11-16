@@ -376,7 +376,7 @@ const CreatePost = () => {
       <audio ref={audioRef} onEnded={() => setIsPlayingPreview(false)} />
       <Navigation />
       <PageWrapper>
-        <div className="min-h-screen bg-background py-8 px-4 pt-24 md:pt-28">
+        <div className="min-h-screen bg-background py-8 px-4 pt-24 md:pt-28 pb-32">
           <div className="max-w-4xl mx-auto">
             {/* Header */}
             <motion.div

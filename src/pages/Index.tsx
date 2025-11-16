@@ -216,17 +216,11 @@ const Index = () => {
         <StreamingHero />
         
         {/* Content Sections */}
-        <div className="relative z-10 space-y-16 pb-20">
+        <div className="relative z-10 space-y-16 pb-32">
           <TrendingSection type="movie" title="🔥 Trending Movies" />
           <TrendingSection type="tv" title="📺 Trending TV Shows" />
-          <NewReleasesSection type="movie" title="🎬 New Movie Releases" />
-          <NewReleasesSection type="tv" title="📡 New TV Show Episodes" />
         </div>
-        
-        <Footer />
-        
       </div>
-
     </PageWrapper>
   );
 };
