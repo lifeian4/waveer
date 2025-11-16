@@ -16,6 +16,31 @@ interface TimeUnits {
   seconds: number;
 }
 
+interface TimeUnitProps {
+  label: string;
+  value: number;
+}
+
+const TimeUnit = ({ label, value }: TimeUnitProps) => (
+  <motion.div
+    initial={{ scale: 0.8, opacity: 0 }}
+    animate={{ scale: 1, opacity: 1 }}
+    className="flex flex-col items-center gap-0.5"
+  >
+    <motion.div
+      key={value}
+      initial={{ y: -10, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      className="text-sm font-bold text-primary"
+    >
+      {String(value).padStart(2, "0")}
+    </motion.div>
+    <div className="text-xs text-muted-foreground uppercase tracking-wider">
+      {label}
+    </div>
+  </motion.div>
+);
+
 const AgeCounter = ({ dateOfBirth }: AgeCounterProps) => {
   const [timeUnits, setTimeUnits] = useState<TimeUnits>({
     years: 0,
@@ -79,26 +104,6 @@ const AgeCounter = ({ dateOfBirth }: AgeCounterProps) => {
   }, [dateOfBirth]);
 
   if (!dateOfBirth) return null;
-
-  const TimeUnit = ({ label, value }: { label: string; value: number }) => (
-    <motion.div
-      initial={{ scale: 0.8, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      className="flex flex-col items-center gap-0.5"
-    >
-      <motion.div
-        key={value}
-        initial={{ y: -10, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        className="text-sm font-bold text-primary"
-      >
-        {String(value).padStart(2, "0")}
-      </motion.div>
-      <div className="text-xs text-muted-foreground uppercase tracking-wider">
-        {label}
-      </div>
-    </motion.div>
-  );
 
   return (
     <motion.div
