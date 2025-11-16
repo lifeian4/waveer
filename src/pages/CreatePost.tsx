@@ -35,13 +35,18 @@ import PageWrapper from "@/components/PageWrapper";
 
 type PostType = "image" | "video" | null;
 
-interface SpotifyTrack {
-  id: string;
-  name: string;
-  artists: { name: string }[];
-  album: { images: { url: string }[] };
-  external_urls: { spotify: string };
-  preview_url: string | null;
+interface YouTubeVideo {
+  id: { videoId: string };
+  snippet: {
+    title: string;
+    description: string;
+    thumbnails: {
+      default?: { url: string };
+      medium?: { url: string };
+      high?: { url: string };
+    };
+    channelTitle: string;
+  };
 }
 
 const CreatePost = () => {
@@ -60,10 +65,10 @@ const CreatePost = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [videoDuration, setVideoDuration] = useState<number>(0);
-  const [spotifySearch, setSpotifySearch] = useState("");
-  const [spotifyResults, setSpotifyResults] = useState<SpotifyTrack[]>([]);
-  const [searchingSpotify, setSearchingSpotify] = useState(false);
-  const [showSpotifyResults, setShowSpotifyResults] = useState(false);
+  const [youtubeSearch, setYoutubeSearch] = useState("");
+  const [youtubeResults, setYoutubeResults] = useState<YouTubeVideo[]>([]);
+  const [searchingYoutube, setSearchingYoutube] = useState(false);
+  const [showYoutubeResults, setShowYoutubeResults] = useState(false);
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -78,102 +83,53 @@ const CreatePost = () => {
   const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
   const MAX_VIDEO_SIZE = 500 * 1024 * 1024; // 500MB
 
-  const searchSpotify = async (query: string) => {
+  const searchYoutube = async (query: string) => {
     if (!query.trim()) {
-      setSpotifyResults([]);
-      setShowSpotifyResults(false);
+      setYoutubeResults([]);
+      setShowYoutubeResults(false);
       return;
     }
 
+    setSearchingYoutube(true);
     try {
-      const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
-      const clientSecret = import.meta.env.VITE_SPOTIFY_CLIENT_SECRET;
+      const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
 
-      if (!clientId || !clientSecret) {
-        toast.error("Spotify credentials not configured");
+      if (!apiKey) {
+        toast.error("YouTube API key not configured");
         return;
       }
 
-      // Get access token using Client Credentials flow
-      const authResponse = await fetch("https://accounts.spotify.com/api/token", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
-        },
-        body: "grant_type=client_credentials",
-      });
-
-      if (!authResponse.ok) {
-        throw new Error("Failed to authenticate with Spotify");
-      }
-
-      const authData = await authResponse.json();
-      const accessToken = authData.access_token;
-
-      // Search for tracks
+      // Search for videos on YouTube
       const searchResponse = await fetch(
-        `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=10`,
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=10&key=${apiKey}`,
         {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
+          method: "GET",
         }
       );
 
       if (!searchResponse.ok) {
-        throw new Error("Failed to search Spotify");
+        throw new Error("Failed to search YouTube");
       }
 
       const searchData = await searchResponse.json();
-      const tracks = searchData.tracks?.items || [];
+      const videos = searchData.items || [];
       
-      console.log("Search results:", tracks.length, "tracks found");
+      console.log("YouTube search results:", videos.length, "videos found");
       
-      if (tracks.length === 0) {
-        toast.info("No tracks found. Try a different search.");
-        setSpotifyResults([]);
-        setShowSpotifyResults(false);
+      if (videos.length === 0) {
+        toast.info("No videos found. Try a different search.");
+        setYoutubeResults([]);
+        setShowYoutubeResults(false);
         return;
       }
 
-      // Get track IDs to fetch full track details with preview URLs
-      const trackIds = tracks.map((t: SpotifyTrack) => t.id).join(",");
-      
-      console.log("Fetching details for track IDs:", trackIds);
-      
-      // Fetch full track details to get preview URLs
-      const detailsResponse = await fetch(
-        `https://api.spotify.com/v1/tracks?ids=${trackIds}`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
-
-      if (!detailsResponse.ok) {
-        throw new Error("Failed to fetch track details");
-      }
-
-      const detailsData = await detailsResponse.json();
-      const tracksWithDetails = detailsData.tracks || [];
-      
-      console.log("Track details fetched:", tracksWithDetails.length, "tracks");
-      console.log("Tracks with preview:", tracksWithDetails.filter((t: SpotifyTrack) => t?.preview_url).length);
-      
-      // Show all tracks first, don't filter by preview
-      if (tracksWithDetails.length === 0) {
-        toast.info("No tracks found. Try a different search.");
-        setSpotifyResults([]);
-        setShowSpotifyResults(false);
-      } else {
-        setSpotifyResults(tracksWithDetails);
-        setShowSpotifyResults(true);
-      }
+      setYoutubeResults(videos);
+      setShowYoutubeResults(true);
     } catch (error) {
-      console.error("Spotify search error:", error);
-      toast.error("Failed to search Spotify. Please check your credentials.");
+      console.error("YouTube search error:", error);
+      toast.error("Failed to search YouTube. Please check your credentials.");
+    } finally {
+      setSearchingYoutube(false);
     }
   };
 
@@ -208,16 +164,25 @@ const CreatePost = () => {
     }
   };
 
-  const selectTrack = (track: SpotifyTrack) => {
-    setMusicTitle(track.name);
-    setMusicArtist(track.artists.map((a) => a.name).join(", "));
-    setMusicUrl(track.external_urls.spotify);
-    setMusicId(track.id);
-    setMusicCoverUrl(track.album.images[0]?.url || "");
-    setMusicPreviewUrl(track.preview_url || "");
-    setShowSpotifyResults(false);
-    setSpotifySearch("");
-    toast.success("Track selected!");
+  const selectVideo = (video: YouTubeVideo) => {
+    const videoId = video.id.videoId;
+    const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    const embedUrl = `https://www.youtube.com/embed/${videoId}`;
+    
+    setMusicTitle(video.snippet.title);
+    setMusicArtist(video.snippet.channelTitle);
+    setMusicUrl(youtubeUrl);
+    setMusicId(videoId);
+    setMusicCoverUrl(
+      video.snippet.thumbnails.high?.url ||
+      video.snippet.thumbnails.medium?.url ||
+      video.snippet.thumbnails.default?.url ||
+      ""
+    );
+    setMusicPreviewUrl(embedUrl);
+    setShowYoutubeResults(false);
+    setYoutubeSearch("");
+    toast.success("Video selected!");
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -384,9 +349,9 @@ const CreatePost = () => {
     setPreview("");
     setVideoDuration(0);
     setUploadProgress(0);
-    setSpotifySearch("");
-    setSpotifyResults([]);
-    setShowSpotifyResults(false);
+    setYoutubeSearch("");
+    setYoutubeResults([]);
+    setShowYoutubeResults(false);
     setIsPlayingPreview(false);
     setIsMuted(false);
     if (audioRef.current) {
@@ -668,27 +633,27 @@ const CreatePost = () => {
                       </p>
                     </div>
 
-                    {/* Spotify Search */}
+                    {/* YouTube Search */}
                     <div className="mb-6">
-                      <Label htmlFor="spotifySearch" className="flex items-center gap-2 mb-2">
+                      <Label htmlFor="youtubeSearch" className="flex items-center gap-2 mb-2">
                         <Music className="w-4 h-4" />
-                        Search Spotify Music (Optional)
+                        Search YouTube Music (Optional)
                       </Label>
                       <div className="relative">
                         <div className="flex gap-2">
                           <div className="relative flex-1">
                             <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            {searchingSpotify && (
+                            {searchingYoutube && (
                               <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                                 <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                               </div>
                             )}
                             <Input
-                              id="spotifySearch"
-                              placeholder="Search for songs, artists..."
-                              value={spotifySearch}
+                              id="youtubeSearch"
+                              placeholder="Search for songs, artists, music videos..."
+                              value={youtubeSearch}
                               onChange={(e) => {
-                                setSpotifySearch(e.target.value);
+                                setYoutubeSearch(e.target.value);
                                 
                                 // Clear previous timeout
                                 if (searchTimeoutRef.current) {
@@ -698,11 +663,11 @@ const CreatePost = () => {
                                 if (e.target.value.trim()) {
                                   // Debounce search with 500ms delay
                                   searchTimeoutRef.current = setTimeout(() => {
-                                    searchSpotify(e.target.value);
+                                    searchYoutube(e.target.value);
                                   }, 500);
                                 } else {
-                                  setSpotifyResults([]);
-                                  setShowSpotifyResults(false);
+                                  setYoutubeResults([]);
+                                  setShowYoutubeResults(false);
                                 }
                               }}
                               disabled={uploading}
@@ -719,9 +684,10 @@ const CreatePost = () => {
                                 setMusicUrl("");
                                 setMusicId("");
                                 setMusicCoverUrl("");
-                                setSpotifySearch("");
-                                setSpotifyResults([]);
-                                setShowSpotifyResults(false);
+                                setMusicPreviewUrl("");
+                                setYoutubeSearch("");
+                                setYoutubeResults([]);
+                                setShowYoutubeResults(false);
                               }}
                               disabled={uploading}
                             >
@@ -730,71 +696,30 @@ const CreatePost = () => {
                           )}
                         </div>
 
-                        {/* Spotify Results Dropdown */}
-                        {showSpotifyResults && spotifyResults.length > 0 && (
+                        {/* YouTube Results Dropdown */}
+                        {showYoutubeResults && youtubeResults.length > 0 && (
                           <motion.div
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
                             className="absolute top-full left-0 right-0 mt-2 bg-card border rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto"
                           >
-                            {spotifyResults.map((track) => (
+                            {youtubeResults.map((video) => (
                               <motion.div
-                                key={track.id}
+                                key={video.id.videoId}
                                 className="p-3 border-b last:border-b-0 flex items-center gap-3 hover:bg-accent transition-colors group"
                               >
-                                {track.album.images[0] && (
+                                {(video.snippet.thumbnails.default?.url || video.snippet.thumbnails.medium?.url) && (
                                   <img
-                                    src={track.album.images[0].url}
-                                    alt={track.name}
+                                    src={video.snippet.thumbnails.default?.url || video.snippet.thumbnails.medium?.url}
+                                    alt={video.snippet.title}
                                     className="w-10 h-10 rounded object-cover"
                                   />
                                 )}
-                                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => selectTrack(track)}>
-                                  <div className="flex items-center gap-2">
-                                    <p className="font-medium text-sm truncate">{track.name}</p>
-                                    {track.preview_url && (
-                                      <span className="text-xs bg-green-500/20 text-green-700 px-2 py-0.5 rounded whitespace-nowrap">
-                                        Preview
-                                      </span>
-                                    )}
-                                  </div>
+                                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => selectVideo(video)}>
+                                  <p className="font-medium text-sm truncate">{video.snippet.title}</p>
                                   <p className="text-xs text-muted-foreground truncate">
-                                    {track.artists.map((a) => a.name).join(", ")}
+                                    {video.snippet.channelTitle}
                                   </p>
-                                </div>
-                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      playPreview(track.preview_url);
-                                    }}
-                                    className="h-8 w-8 p-0"
-                                    title="Play preview"
-                                  >
-                                    {isPlayingPreview ? (
-                                      <Pause className="w-4 h-4" />
-                                    ) : (
-                                      <Play className="w-4 h-4" />
-                                    )}
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toggleMute();
-                                    }}
-                                    className="h-8 w-8 p-0"
-                                    title={isMuted ? "Unmute" : "Mute"}
-                                  >
-                                    {isMuted ? (
-                                      <VolumeX className="w-4 h-4" />
-                                    ) : (
-                                      <Volume2 className="w-4 h-4" />
-                                    )}
-                                  </Button>
                                 </div>
                               </motion.div>
                             ))}
