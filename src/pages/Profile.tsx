@@ -28,14 +28,16 @@ import {
   Send,
   CreditCard,
   Star,
-  BadgeCheck
+  BadgeCheck,
+  Heart,
+  Eye,
+  Play
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Navigation from "@/components/Navigation";
 import PageWrapper from "@/components/PageWrapper";
 import WaveBadge from "@/components/WaveBadge";
-import AgeCounter from "@/components/AgeCounter";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -97,6 +99,20 @@ interface FollowingData {
   following_profile?: FollowingProfile | null;
 }
 
+interface Post {
+  id: string;
+  user_id: string;
+  caption: string;
+  media_url: string;
+  media_type: "image" | "video";
+  video_duration: number | null;
+  likes_count: number;
+  comments_count: number;
+  views_count: number;
+  created_at: string;
+  is_liked: boolean;
+}
+
 const Profile = () => {
   const { userId } = useParams();
   const { currentUser } = useAuth();
@@ -111,6 +127,7 @@ const Profile = () => {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [followers, setFollowers] = useState<FollowerData[]>([]);
   const [following, setFollowing] = useState<FollowingData[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
@@ -257,8 +274,27 @@ const Profile = () => {
       };
     }
     
+    const fetchPosts = async () => {
+      try {
+        const profileUserId = userId || currentUser?.id;
+        if (!profileUserId) return;
+
+        const { data, error } = await supabase
+          .from("posts")
+          .select("*")
+          .eq("user_id", profileUserId)
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+        setPosts(data || []);
+      } catch (error) {
+        console.error("Error fetching posts:", error);
+      }
+    };
+
     loadProfile();
     loadUserStories();
+    fetchPosts();
   }, [userId, currentUser]);
 
   // Fetch followers and following counts with real-time updates
@@ -930,13 +966,6 @@ const Profile = () => {
                       </span>
                     </div>
                   </div>
-
-                  {/* Age Counter - Only show if user has date of birth */}
-                  {profile.date_of_birth && (
-                    <div className="mt-6 max-w-sm">
-                      <AgeCounter dateOfBirth={profile.date_of_birth} />
-                    </div>
-                  )}
                 </>
               )}
             </div>
@@ -1034,8 +1063,8 @@ const Profile = () => {
           </motion.div>
         )}
         
-        {/* Followers/Following Section */}
-        {canViewProfile ? (
+        {/* Followers/Following Section - Only visible if profile is public or user is following */}
+        {canViewProfile && (isOwnProfile || isFollowingUser) ? (
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1199,6 +1228,74 @@ const Profile = () => {
             </div>
           )}
         </motion.div>
+
+        {/* Posts Section - Only visible if profile is public or user is following */}
+        {canViewProfile && (isOwnProfile || isFollowingUser) && (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-card rounded-xl p-6 border shadow-sm"
+        >
+          <h3 className="text-xl font-semibold mb-6">Posts ({posts.length})</h3>
+          
+          {posts.length === 0 ? (
+            <div className="text-center py-12">
+              <Mail className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">No posts yet</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {posts.map((post) => (
+                <motion.div
+                  key={post.id}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  onClick={() => navigate(`/post/${post.id}`)}
+                  className="relative group cursor-pointer rounded-lg overflow-hidden bg-muted aspect-square"
+                >
+                  {/* Media */}
+                  {post.media_type === "image" ? (
+                    <img
+                      src={post.media_url}
+                      alt={post.caption}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <>
+                      <video
+                        src={post.media_url}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors">
+                        <Play className="w-12 h-12 text-white" />
+                      </div>
+                    </>
+                  )}
+
+                  {/* Overlay with stats */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                    <div className="flex gap-6 text-white text-sm">
+                      <div className="flex items-center gap-2">
+                        <Heart className="w-4 h-4" />
+                        <span>{formatCount(post.likes_count)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <MessageCircle className="w-4 h-4" />
+                        <span>{formatCount(post.comments_count)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Eye className="w-4 h-4" />
+                        <span>{formatCount(post.views_count)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </motion.div>
+        )}
 
       ) : (
           <motion.div 
