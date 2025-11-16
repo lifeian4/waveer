@@ -304,7 +304,7 @@ const Navigation = () => {
                         </Button>
                       </div>
                       <DropdownMenuSeparator />
-                      <div className="px-2 py-3">
+                      <div className="px-2 py-3 pointer-events-none">
                         <AgeCounter dateOfBirth={dateOfBirth} />
                       </div>
                       <DropdownMenuSeparator />
@@ -444,7 +444,7 @@ const Navigation = () => {
                           </div>
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <div className="px-2 py-2">
+                        <div className="px-2 py-2 pointer-events-none">
                           <AgeCounter dateOfBirth={dateOfBirth} />
                         </div>
                         <DropdownMenuSeparator />
