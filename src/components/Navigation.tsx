@@ -262,25 +262,27 @@ const Navigation = () => {
                     <Plus className="w-5 h-5 text-foreground group-hover:text-primary transition-colors duration-300" />
                   </motion.button>
 
-                  {/* Notification Bell */}
-                  <NotificationsDropdown />
+                  {/* User Menu with Notifications */}
+                  <div className="flex items-center gap-2">
+                    {/* Notification Bell */}
+                    <NotificationsDropdown />
 
-                  {/* User Menu */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="flex items-center gap-2 focus:outline-none"
-                      >
-                        <Avatar className="w-10 h-10 border-2 border-primary/50">
-                          <AvatarImage src={currentUser.user_metadata?.avatar_url || undefined} />
-                          <AvatarFallback className="bg-primary/20 text-primary font-bold">
-                            {currentUser.user_metadata?.full_name?.charAt(0) || currentUser.email?.charAt(0) || "U"}
-                          </AvatarFallback>
-                        </Avatar>
-                      </motion.button>
-                    </DropdownMenuTrigger>
+                    {/* Avatar */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          className="flex items-center gap-2 focus:outline-none"
+                        >
+                          <Avatar className="w-10 h-10 border-2 border-primary/50">
+                            <AvatarImage src={currentUser.user_metadata?.avatar_url || undefined} />
+                            <AvatarFallback className="bg-primary/20 text-primary font-bold">
+                              {currentUser.user_metadata?.full_name?.charAt(0) || currentUser.email?.charAt(0) || "U"}
+                            </AvatarFallback>
+                          </Avatar>
+                        </motion.button>
+                      </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-80" align="end" forceMount>
                       <div className="flex items-center justify-between px-2 py-3">
                         <DropdownMenuLabel className="p-0">
@@ -319,7 +321,8 @@ const Navigation = () => {
                         <span>Log out</span>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
-                  </DropdownMenu>
+                    </DropdownMenu>
+                  </div>
                 </>
               ) : (
                 <motion.div

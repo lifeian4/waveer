@@ -6,7 +6,7 @@ import {
   Film, 
   Tv,
   Music,
-  Search, 
+  Play,
   User as UserIcon,
   Plus,
   Bell
@@ -32,8 +32,8 @@ const AdjustedBottomNavbar = ({ onSearchClick }: AdjustedBottomNavbarProps) => {
     else if (path.includes("/movies")) setActiveTab("movies");
     else if (path.includes("/tv-shows")) setActiveTab("tv");
     else if (path.includes("/music")) setActiveTab("music");
+    else if (path.includes("/shows")) setActiveTab("shows");
     else if (path.includes("/create")) setActiveTab("create");
-    else if (path.includes("/notifications")) setActiveTab("notifications");
     else if (path.includes("/profile")) setActiveTab("profile");
     else if (path.includes("/login")) setActiveTab("login");
   }, [location.pathname]);
@@ -48,16 +48,10 @@ const AdjustedBottomNavbar = ({ onSearchClick }: AdjustedBottomNavbarProps) => {
           action: () => navigate("/") 
         },
         { 
-          id: "search", 
-          label: "Search", 
-          icon: Search, 
-          action: onSearchClick
-        },
-        { 
-          id: "notifications", 
-          label: "Notifications", 
-          icon: Bell, 
-          action: () => navigate("/notifications") 
+          id: "shows", 
+          label: "Shows", 
+          icon: Play, 
+          action: () => navigate("/shows")
         },
         { 
           id: "create", 
@@ -78,12 +72,6 @@ const AdjustedBottomNavbar = ({ onSearchClick }: AdjustedBottomNavbarProps) => {
           label: "Home", 
           icon: Home, 
           action: () => navigate("/") 
-        },
-        { 
-          id: "search", 
-          label: "Search", 
-          icon: Search, 
-          action: onSearchClick
         },
         { 
           id: "movies", 
