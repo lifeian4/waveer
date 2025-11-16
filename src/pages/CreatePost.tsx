@@ -126,8 +126,18 @@ const CreatePost = () => {
       }
 
       const searchData = await searchResponse.json();
-      setSpotifyResults(searchData.tracks?.items || []);
-      setShowSpotifyResults(true);
+      // Filter tracks that have preview URLs available
+      const tracksWithPreviews = (searchData.tracks?.items || []).filter(
+        (track: SpotifyTrack) => track.preview_url !== null
+      );
+      
+      if (tracksWithPreviews.length === 0) {
+        toast.info("No tracks with previews found. Try a different search.");
+        setSpotifyResults([]);
+      } else {
+        setSpotifyResults(tracksWithPreviews);
+        setShowSpotifyResults(true);
+      }
     } catch (error) {
       console.error("Spotify search error:", error);
       toast.error("Failed to search Spotify. Please check your credentials.");
@@ -713,40 +723,38 @@ const CreatePost = () => {
                                   </p>
                                 </div>
                                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  {track.preview_url && (
-                                    <>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          playPreview(track.preview_url);
-                                        }}
-                                        className="h-8 w-8 p-0"
-                                      >
-                                        {isPlayingPreview ? (
-                                          <Pause className="w-4 h-4" />
-                                        ) : (
-                                          <Play className="w-4 h-4" />
-                                        )}
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          toggleMute();
-                                        }}
-                                        className="h-8 w-8 p-0"
-                                      >
-                                        {isMuted ? (
-                                          <VolumeX className="w-4 h-4" />
-                                        ) : (
-                                          <Volume2 className="w-4 h-4" />
-                                        )}
-                                      </Button>
-                                    </>
-                                  )}
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      playPreview(track.preview_url);
+                                    }}
+                                    className="h-8 w-8 p-0"
+                                    title="Play preview"
+                                  >
+                                    {isPlayingPreview ? (
+                                      <Pause className="w-4 h-4" />
+                                    ) : (
+                                      <Play className="w-4 h-4" />
+                                    )}
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleMute();
+                                    }}
+                                    className="h-8 w-8 p-0"
+                                    title={isMuted ? "Unmute" : "Mute"}
+                                  >
+                                    {isMuted ? (
+                                      <VolumeX className="w-4 h-4" />
+                                    ) : (
+                                      <Volume2 className="w-4 h-4" />
+                                    )}
+                                  </Button>
                                 </div>
                               </motion.div>
                             ))}
