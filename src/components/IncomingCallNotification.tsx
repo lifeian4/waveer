@@ -12,9 +12,12 @@ interface CallInvitation {
   id: string;
   call_id: string;
   caller_id: string;
-  receiver_id: string;
-  call_type: 'video' | 'audio';
-  status: string;
+  user_id: string; // receiver
+  call_type: 'audio' | 'video';
+  title: string;
+  body: string;
+  read: boolean;
+  data?: any;
   caller_profile?: {
     display_name: string;
     avatar_url: string;
@@ -30,30 +33,39 @@ const IncomingCallNotification = () => {
   useEffect(() => {
     if (!currentUser) return;
 
-    // Subscribe to incoming calls
+    // Subscribe to incoming calls via notifi table
     const channel = supabase
-      .channel('incoming-calls')
+      .channel(`notifi:${currentUser.id}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'call_invitations',
-          filter: `receiver_id=eq.${currentUser.id}`,
+          table: 'notifi',
+          filter: `user_id=eq.${currentUser.id},type=eq.incoming_call`,
         },
         async (payload) => {
-          const invitation = payload.new as CallInvitation;
+          const notification = payload.new as any;
           
           // Fetch caller profile
           const { data: profile } = await supabase
             .from('profiles')
             .select('display_name, avatar_url')
-            .eq('id', invitation.caller_id)
+            .eq('id', notification.caller_id)
             .single();
 
-          if (profile) {
-            invitation.caller_profile = profile;
-          }
+          const invitation: CallInvitation = {
+            id: notification.id,
+            call_id: notification.call_id,
+            caller_id: notification.caller_id,
+            user_id: notification.user_id,
+            call_type: notification.call_type,
+            title: notification.title,
+            body: notification.body,
+            read: notification.read,
+            data: notification.data,
+            caller_profile: profile || undefined,
+          };
 
           setIncomingCall(invitation);
 
@@ -63,23 +75,41 @@ const IncomingCallNotification = () => {
           ringtoneRef.current.play().catch(err => console.log('Ringtone error:', err));
         }
       )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'call_invitations',
-          filter: `receiver_id=eq.${currentUser.id}`,
-        },
-        (payload) => {
-          const invitation = payload.new as CallInvitation;
-          
-          // If call ended by caller, dismiss notification
-          if (invitation.status === 'ended' || invitation.status === 'rejected') {
-            dismissCall();
-          }
-        }
-      )
+      .subscribe();
+    
+    // Also listen for realtime broadcast from server
+    const broadcastChannel = supabase
+      .channel(`notifi:${currentUser.id}`)
+      .on('broadcast', { event: 'incoming_call' }, (payload) => {
+        const notification = payload.payload;
+        
+        supabase
+          .from('profiles')
+          .select('display_name, avatar_url')
+          .eq('id', notification.data.callerId)
+          .single()
+          .then(({ data: profile }) => {
+            const invitation: CallInvitation = {
+              id: notification.id || crypto.randomUUID(),
+              call_id: notification.data.callId,
+              caller_id: notification.data.callerId,
+              user_id: currentUser.id,
+              call_type: notification.data.callType,
+              title: notification.title,
+              body: notification.body,
+              read: false,
+              data: notification.data,
+              caller_profile: profile || undefined,
+            };
+            
+            setIncomingCall(invitation);
+            
+            // Play ringtone
+            ringtoneRef.current = new Audio('https://www.soundjay.com/phone/sounds/phone-calling-1.mp3');
+            ringtoneRef.current.loop = true;
+            ringtoneRef.current.play().catch(err => console.log('Ringtone error:', err));
+          });
+      })
       .subscribe();
 
     return () => {
@@ -103,10 +133,10 @@ const IncomingCallNotification = () => {
     if (!incomingCall) return;
 
     try {
-      // Update invitation status
+      // Mark notification as read
       await supabase
-        .from('call_invitations')
-        .update({ status: 'accepted' })
+        .from('notifi')
+        .update({ read: true })
         .eq('id', incomingCall.id);
 
       dismissCall();
@@ -124,10 +154,10 @@ const IncomingCallNotification = () => {
     if (!incomingCall) return;
 
     try {
-      // Update invitation status
+      // Mark notification as read (rejected)
       await supabase
-        .from('call_invitations')
-        .update({ status: 'rejected' })
+        .from('notifi')
+        .update({ read: true })
         .eq('id', incomingCall.id);
 
       dismissCall();
