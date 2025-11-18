@@ -117,7 +117,7 @@ const IncomingCallNotification = () => {
       dismissCall();
 
       // Navigate to call page
-      const callPage = incomingCall.call_type === 'video' ? 'video-call' : 'audio-call';
+      const callPage = incomingCall.call_type === 'video' ? 'video-call2' : 'audio-call2';
       navigate(`/${callPage}/${incomingCall.call_id}?userId=${incomingCall.caller_id}&caller=false`);
     } catch (error) {
       console.error('Error accepting call:', error);

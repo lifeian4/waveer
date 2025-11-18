@@ -516,16 +516,28 @@ const ChatWithStories = () => {
                       onClick={async () => {
                         const callId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
                         
-                        // Create call invitation
-                        await supabase.from('call_invitations').insert({
+                        // Create audio call record
+                        await supabase.from('audiocall5').insert({
+                          id: callId,
                           call_id: callId,
                           caller_id: currentUser!.id,
-                          receiver_id: userId,
-                          call_type: 'audio',
-                          status: 'pending',
+                          callee_id: userId,
+                          status: 'initiated',
                         });
                         
-                        navigate(`/audio-call/${callId}?userId=${userId}&userName=${otherUser.display_name || otherUser.full_name}&caller=true`);
+                        // Send incoming call notification
+                        await supabase.from('notifi').insert({
+                          user_id: userId,
+                          caller_id: currentUser!.id,
+                          call_id: callId,
+                          call_type: 'audio',
+                          type: 'incoming_call',
+                          title: `${otherUser.display_name || otherUser.full_name} is calling...`,
+                          body: 'Audio call',
+                          read: false,
+                        });
+                        
+                        navigate(`/audio-call2/${callId}?userId=${userId}&caller=true`);
                       }}
                       title="Audio Call"
                     >
@@ -538,16 +550,28 @@ const ChatWithStories = () => {
                       onClick={async () => {
                         const callId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
                         
-                        // Create call invitation
-                        await supabase.from('call_invitations').insert({
+                        // Create video call record
+                        await supabase.from('videocall5').insert({
+                          id: callId,
                           call_id: callId,
                           caller_id: currentUser!.id,
-                          receiver_id: userId,
-                          call_type: 'video',
-                          status: 'pending',
+                          callee_id: userId,
+                          status: 'initiated',
                         });
                         
-                        navigate(`/video-call/${callId}?userId=${userId}&userName=${otherUser.display_name || otherUser.full_name}&caller=true`);
+                        // Send incoming call notification
+                        await supabase.from('notifi').insert({
+                          user_id: userId,
+                          caller_id: currentUser!.id,
+                          call_id: callId,
+                          call_type: 'video',
+                          type: 'incoming_call',
+                          title: `${otherUser.display_name || otherUser.full_name} is calling...`,
+                          body: 'Video call',
+                          read: false,
+                        });
+                        
+                        navigate(`/video-call2/${callId}?userId=${userId}&caller=true`);
                       }}
                       title="Video Call"
                     >
