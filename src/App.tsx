@@ -45,6 +45,8 @@ const CreateStory = lazy(() => import("./pages/CreateStory"));
 const StoryViewer = lazy(() => import("./pages/StoryViewer"));
 const VideoCallWebRTC = lazy(() => import("./pages/VideoCallWebRTC"));
 const AudioCallWebRTC = lazy(() => import("./pages/AudioCallWebRTC"));
+const VideoCall2 = lazy(() => import("./pages/VideoCall2"));
+const AudioCall2 = lazy(() => import("./pages/AudioCall2"));
 const IncomingCallNotification = lazy(() => import("./components/IncomingCallNotification"));
 const Security = lazy(() => import("./pages/Security"));
 const Trending = lazy(() => import("./pages/Trending"));
@@ -124,6 +126,8 @@ const App = () => {
                 <Route path="/story/:id" element={<Suspense fallback={<LoadingFallback />}><StoryViewer /></Suspense>} />
                 <Route path="/video-call/:callId" element={<Suspense fallback={<LoadingFallback />}><VideoCallWebRTC /></Suspense>} />
                 <Route path="/audio-call/:callId" element={<Suspense fallback={<LoadingFallback />}><AudioCallWebRTC /></Suspense>} />
+                <Route path="/video-call2/:callId" element={<Suspense fallback={<LoadingFallback />}><VideoCall2 /></Suspense>} />
+                <Route path="/audio-call2/:callId" element={<Suspense fallback={<LoadingFallback />}><AudioCall2 /></Suspense>} />
                 <Route path="/security" element={<Suspense fallback={<LoadingFallback />}><Security /></Suspense>} />
                 <Route path="/trending" element={<Suspense fallback={<LoadingFallback />}><Trending /></Suspense>} />
                 <Route path="/verify-account" element={<Suspense fallback={<LoadingFallback />}><VerifyAccount /></Suspense>} />
