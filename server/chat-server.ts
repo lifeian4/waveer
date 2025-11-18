@@ -21,15 +21,16 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
 import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
+import { createNotificationRoutes, sendIncomingCallNotification, sendMessageNotification } from './notifications';
 
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
 
 const PORT = process.env.PORT || 3001;
-const JWT_SECRET = process.env.SUPABASE_JWT_SECRET || 'your-jwt-secret';
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://your-project.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || 'your-anon-key';
+const JWT_SECRET = process.env.SUPABASE_JWT_SECRET || 'eejBw3zDCJTYHFTW6qgcEec8YkCNLjdvICQaIiQFnMTywUf1YU5qpoblSAlNJ+MduWqfz7ZY8LCuRBH1BPEfsQ==';
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://laguwccaczvehldrppll.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhZ3V3Y2NhY3p2ZWhsZHJwcGxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzNTYzNDIsImV4cCI6MjA3NzkzMjM0Mn0.v5Vc8gCvAecMEDXGce8oPfk06P4eABs20pdtof0X0F4';
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
 // TURN server config (for WebRTC NAT traversal)
@@ -125,6 +126,9 @@ app.get('/health', (req: Request, res: Response) => {
 app.get('/chat/turn-config', authMiddleware, (req: Request, res: Response) => {
   res.json(TURN_CONFIG);
 });
+
+// Setup notification routes
+createNotificationRoutes(app);
 
 /**
  * Get message history
@@ -291,13 +295,9 @@ chatNamespace.on('connection', (socket: Socket) => {
         chatNamespace.to(`room:${roomId}`).emit('message:received', message);
       }
 
-      // Trigger push notification if recipient is offline
+      // Trigger Supabase Realtime notification if recipient is offline
       if (receiverId) {
-        await triggerPushNotification(receiverId, {
-          type: 'message',
-          from_user_id: userId,
-          message_preview: text?.substring(0, 100) || 'Sent a message',
-        });
+        await sendMessageNotification(userId, receiverId, text || 'Sent a message', messageId);
       }
     } catch (error) {
       console.error('[Socket] Error sending message:', error);
@@ -398,13 +398,8 @@ chatNamespace.on('connection', (socket: Socket) => {
 
       socket.emit('call:initiated', { callId, calleeId, callType });
 
-      // Trigger push notification
-      await triggerPushNotification(calleeId, {
-        type: 'incoming_call',
-        from_user_id: userId,
-        call_type: callType,
-        call_id: callId,
-      });
+      // Trigger Supabase Realtime notification
+      await sendIncomingCallNotification(userId, calleeId, callId, callType);
     } catch (error) {
       console.error('[Socket] Error initiating call:', error);
       socket.emit('call:error', { error: 'Failed to initiate call' });
@@ -549,60 +544,7 @@ async function updatePresence(userId: string, status: 'online' | 'offline') {
   }
 }
 
-/**
- * Trigger push notification
- * Integrates with FCM/APNs
- */
-async function triggerPushNotification(userId: string, payload: any) {
-  try {
-    // Get user's push tokens from database
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('metadata')
-      .eq('id', userId)
-      .single();
-
-    if (error || !user?.metadata?.push_tokens) return;
-
-    const pushTokens = user.metadata.push_tokens || [];
-
-    // Send to FCM (Firebase Cloud Messaging)
-    for (const token of pushTokens) {
-      await sendFCMNotification(token, payload);
-    }
-  } catch (error) {
-    console.error('[Push] Error triggering notification:', error);
-  }
-}
-
-/**
- * Send FCM notification
- */
-async function sendFCMNotification(token: string, payload: any) {
-  try {
-    const response = await fetch('https://fcm.googleapis.com/fcm/send', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `key=${process.env.FCM_SERVER_KEY}`,
-      },
-      body: JSON.stringify({
-        to: token,
-        notification: {
-          title: payload.type === 'incoming_call' ? 'Incoming Call' : 'New Message',
-          body: payload.message_preview || 'You have a new notification',
-        },
-        data: payload,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`FCM error: ${response.statusText}`);
-    }
-  } catch (error) {
-    console.error('[FCM] Error sending notification:', error);
-  }
-}
+// Notifications are now handled via Supabase Realtime (see notifications.ts)
 
 // ============================================================================
 // REDIS ADAPTER (for horizontal scaling)
