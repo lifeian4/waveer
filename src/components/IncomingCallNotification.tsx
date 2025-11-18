@@ -31,7 +31,12 @@ const IncomingCallNotification = () => {
   const ringtoneRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser?.id) {
+      console.log('[IncomingCall] No current user');
+      return;
+    }
+
+    console.log('[IncomingCall] Setting up subscription for user:', currentUser.id);
 
     // Subscribe to incoming calls via notifi table
     const channel = supabase
@@ -45,6 +50,7 @@ const IncomingCallNotification = () => {
           filter: `user_id=eq.${currentUser.id},type=eq.incoming_call`,
         },
         async (payload) => {
+          console.log('[IncomingCall] Received notification:', payload);
           const notification = payload.new as any;
           
           // Fetch caller profile
@@ -67,6 +73,7 @@ const IncomingCallNotification = () => {
             caller_profile: profile || undefined,
           };
 
+          console.log('[IncomingCall] Showing notification:', invitation);
           setIncomingCall(invitation);
 
           // Play ringtone
@@ -75,51 +82,19 @@ const IncomingCallNotification = () => {
           ringtoneRef.current.play().catch(err => console.log('Ringtone error:', err));
         }
       )
-      .subscribe();
-    
-    // Also listen for realtime broadcast from server
-    const broadcastChannel = supabase
-      .channel(`notifi:${currentUser.id}`)
-      .on('broadcast', { event: 'incoming_call' }, (payload) => {
-        const notification = payload.payload;
-        
-        supabase
-          .from('profiles')
-          .select('display_name, avatar_url')
-          .eq('id', notification.data.callerId)
-          .single()
-          .then(({ data: profile }) => {
-            const invitation: CallInvitation = {
-              id: notification.id || crypto.randomUUID(),
-              call_id: notification.data.callId,
-              caller_id: notification.data.callerId,
-              user_id: currentUser.id,
-              call_type: notification.data.callType,
-              title: notification.title,
-              body: notification.body,
-              read: false,
-              data: notification.data,
-              caller_profile: profile || undefined,
-            };
-            
-            setIncomingCall(invitation);
-            
-            // Play ringtone
-            ringtoneRef.current = new Audio('https://www.soundjay.com/phone/sounds/phone-calling-1.mp3');
-            ringtoneRef.current.loop = true;
-            ringtoneRef.current.play().catch(err => console.log('Ringtone error:', err));
-          });
-      })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[IncomingCall] Subscription status:', status);
+      });
 
     return () => {
+      console.log('[IncomingCall] Cleaning up subscription');
       channel.unsubscribe();
       if (ringtoneRef.current) {
         ringtoneRef.current.pause();
         ringtoneRef.current = null;
       }
     };
-  }, [currentUser]);
+  }, [currentUser?.id]);
 
   const dismissCall = () => {
     if (ringtoneRef.current) {
