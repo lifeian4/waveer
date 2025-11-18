@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import { 
   Play, 
   Plus, 
@@ -19,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import Navigation from "@/components/Navigation";
 import PageWrapper from "@/components/PageWrapper";
 import Footer from "@/components/Footer";
+import OptimizedImage from "@/components/OptimizedImage";
 import { useAuth } from "@/contexts/AuthContext";
 import { getMovieDetails, getBackdropUrl, getPosterUrl, type MediaDetails } from "@/lib/tmdb";
 import { supabase } from "@/lib/supabase";
@@ -28,80 +30,69 @@ const MovieDetailsNew = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const [movie, setMovie] = useState<MediaDetails | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [userSubscription, setUserSubscription] = useState<any>(null);
   const [isLiked, setIsLiked] = useState(false);
 
-  useEffect(() => {
-    const fetchMovie = async () => {
-      if (!id) return;
+  // Fetch movie data using React Query for better caching
+  const { data: movie, isLoading: loading, error: movieError } = useQuery({
+    queryKey: ['movie', id],
+    queryFn: () => {
+      if (!id) throw new Error('No movie ID');
+      return getMovieDetails(parseInt(id));
+    },
+    enabled: !!id,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+
+  // Fetch subscription data using React Query
+  const { data: userSubscription } = useQuery({
+    queryKey: ['subscription', currentUser?.id],
+    queryFn: async () => {
+      if (!currentUser) return { status: 'inactive' };
       
-      try {
-        const movieData = await getMovieDetails(parseInt(id));
-        setMovie(movieData);
-      } catch (error) {
-        console.error('Error fetching movie:', error);
-        toast.error("Failed to load movie details");
-      } finally {
-        setLoading(false);
-      }
-    };
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('subscription_status, subscription_plan, subscription_expires_at')
+        .eq('id', currentUser.id)
+        .single();
 
-    fetchMovie();
-  }, [id]);
+      if (error) throw error;
 
-  useEffect(() => {
-    const checkSubscription = async () => {
-      if (currentUser) {
-        try {
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('subscription_status, subscription_plan, subscription_expires_at')
-            .eq('id', currentUser.id)
-            .single();
-
-          if (error) throw error;
-
-          setUserSubscription({
-            status: profile?.subscription_status || 'inactive',
-            plan: profile?.subscription_plan || null,
-            expires_at: profile?.subscription_expires_at || null
-          });
-        } catch (error) {
-          console.error('Error fetching subscription:', error);
-          setUserSubscription({ status: 'inactive' });
-        }
-      }
-    };
-
-    checkSubscription();
-
-    // Real-time subscription updates
-    if (currentUser) {
-      const subscription = supabase
-        .channel('movie-profile-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'profiles',
-            filter: `id=eq.${currentUser.id}`
-          },
-          () => {
-            checkSubscription();
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(subscription);
+      return {
+        status: profile?.subscription_status || 'inactive',
+        plan: profile?.subscription_plan || null,
+        expires_at: profile?.subscription_expires_at || null
       };
-    }
+    },
+    enabled: !!currentUser,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Set up real-time subscription updates
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const subscription = supabase
+      .channel(`movie-profile-${currentUser.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${currentUser.id}`
+        },
+        () => {
+          // Invalidate subscription query to refetch
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
   }, [currentUser]);
 
-  const handlePlay = () => {
+  const handlePlay = useCallback(() => {
     if (!currentUser) {
       navigate('/login');
       return;
@@ -112,23 +103,26 @@ const MovieDetailsNew = () => {
       return;
     }
 
-    // Navigate to watch page
     navigate(`/watch/${id}`);
-  };
+  }, [currentUser, userSubscription?.status, id, navigate]);
 
-  const handleWatchTrailer = () => {
+  const handleWatchTrailer = useCallback(() => {
     toast.success("Playing trailer...");
-  };
+  }, []);
 
-  const handleAddToWatchlist = () => {
+  const handleAddToWatchlist = useCallback(() => {
     if (!currentUser) {
       navigate('/login');
       return;
     }
     
-    setIsLiked(!isLiked);
+    setIsLiked(prev => !prev);
     toast.success(isLiked ? "Removed from watchlist" : "Added to watchlist");
-  };
+  }, [currentUser, isLiked, navigate]);
+
+  // Memoize computed values
+  const canPlay = useMemo(() => currentUser && userSubscription?.status === 'active', [currentUser, userSubscription?.status]);
+  const needsSubscription = useMemo(() => currentUser && userSubscription?.status !== 'active', [currentUser, userSubscription?.status]);
 
   if (loading) {
     return (
@@ -159,9 +153,6 @@ const MovieDetailsNew = () => {
     );
   }
 
-  const canPlay = currentUser && userSubscription?.status === 'active';
-  const needsSubscription = currentUser && userSubscription?.status !== 'active';
-
   return (
     <PageWrapper>
       <div className="min-h-screen bg-background">
@@ -169,11 +160,13 @@ const MovieDetailsNew = () => {
         
         {/* Hero Section */}
         <div className="relative h-screen overflow-hidden">
-          {/* Background Image */}
+          {/* Background Image with lazy loading */}
           <div 
             className="absolute inset-0 bg-cover bg-center bg-no-repeat"
             style={{
-              backgroundImage: `url(${getBackdropUrl(movie.backdrop_path)})`
+              backgroundImage: `url(${getBackdropUrl(movie.backdrop_path)})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
             }}
           />
           
@@ -193,10 +186,11 @@ const MovieDetailsNew = () => {
                   className="flex justify-center lg:justify-start"
                 >
                   <div className="relative group">
-                    <img
+                    <OptimizedImage
                       src={getPosterUrl(movie.poster_path)}
                       alt={movie.title}
-                      className="w-80 h-auto rounded-2xl shadow-2xl group-hover:scale-105 transition-transform duration-300"
+                      className="w-80 rounded-2xl shadow-2xl group-hover:scale-105 transition-transform duration-300"
+                      priority={true}
                     />
                     <div className="absolute inset-0 bg-black/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   </div>

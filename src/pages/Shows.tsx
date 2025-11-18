@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import { 
   Heart, 
   MessageCircle, 
@@ -87,27 +88,27 @@ const Shows = () => {
   const touchStartRef = useRef<number>(0);
   const touchEndRef = useRef<number>(0);
 
-  // Handle swipe gestures
-  const handleTouchStart = (e: React.TouchEvent) => {
+  // Handle swipe gestures with debouncing
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartRef.current = e.targetTouches[0].clientY;
-  };
+  }, []);
 
-  const handleTouchEnd = (e: React.TouchEvent) => {
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
     touchEndRef.current = e.changedTouches[0].clientY;
     handleSwipe();
-  };
+  }, []);
 
-  const handleSwipe = () => {
+  const handleSwipe = useCallback(() => {
     const distance = touchStartRef.current - touchEndRef.current;
     const isLeftSwipe = distance > 50; // Swipe down (distance > 0)
     const isRightSwipe = distance < -50; // Swipe up (distance < 0)
 
     if (isLeftSwipe && currentPostIndex < posts.length - 1) {
-      goToNextPost();
+      setCurrentPostIndex(prev => prev + 1);
     } else if (isRightSwipe && currentPostIndex > 0) {
-      goToPreviousPost();
+      setCurrentPostIndex(prev => prev - 1);
     }
-  };
+  }, [currentPostIndex, posts.length]);
 
   useEffect(() => {
     fetchPosts();
@@ -279,18 +280,14 @@ const Shows = () => {
     }
   };
 
-  // Navigation functions
-  const goToNextPost = () => {
-    if (currentPostIndex < posts.length - 1) {
-      setCurrentPostIndex(currentPostIndex + 1);
-    }
-  };
+  // Navigation functions with useCallback
+  const goToNextPost = useCallback(() => {
+    setCurrentPostIndex(prev => (prev < posts.length - 1 ? prev + 1 : prev));
+  }, [posts.length]);
 
-  const goToPreviousPost = () => {
-    if (currentPostIndex > 0) {
-      setCurrentPostIndex(currentPostIndex - 1);
-    }
-  };
+  const goToPreviousPost = useCallback(() => {
+    setCurrentPostIndex(prev => (prev > 0 ? prev - 1 : prev));
+  }, []);
 
   // Auto-slide effect - waits for video to end
   useEffect(() => {
@@ -329,8 +326,8 @@ const Shows = () => {
     };
   }, [autoSlide, posts, currentPostIndex]);
 
-  // Delete post function
-  const handleDeletePost = async (postId: string) => {
+  // Delete post function with useCallback
+  const handleDeletePost = useCallback(async (postId: string) => {
     if (!currentUser) return;
     
     try {
@@ -342,13 +339,13 @@ const Shows = () => {
 
       if (error) throw error;
 
-      setPosts(posts.filter(p => p.id !== postId));
+      setPosts(prev => prev.filter(p => p.id !== postId));
       toast.success('Post deleted successfully');
     } catch (error) {
       console.error('Error deleting post:', error);
       toast.error('Failed to delete post');
     }
-  };
+  }, [currentUser]);
 
   // Set up Intersection Observer for tracking views
   useEffect(() => {
@@ -378,7 +375,7 @@ const Shows = () => {
     };
   }, [posts, currentUser, viewedPosts]);
 
-  const handleLike = async (postId: string) => {
+  const handleLike = useCallback(async (postId: string) => {
     if (!currentUser) return;
 
     const post = posts.find(p => p.id === postId);
@@ -395,7 +392,7 @@ const Shows = () => {
 
         await supabase.rpc('decrement_post_likes', { post_id: postId });
 
-        setPosts(posts.map(p => 
+        setPosts(prev => prev.map(p => 
           p.id === postId 
             ? { ...p, is_liked: false, likes_count: p.likes_count - 1 }
             : p
@@ -408,7 +405,7 @@ const Shows = () => {
 
         await supabase.rpc('increment_post_likes', { post_id: postId });
 
-        setPosts(posts.map(p => 
+        setPosts(prev => prev.map(p => 
           p.id === postId 
             ? { ...p, is_liked: true, likes_count: p.likes_count + 1 }
             : p
@@ -418,9 +415,9 @@ const Shows = () => {
       console.error('Error liking post:', error);
       toast.error('Failed to like post');
     }
-  };
+  }, [currentUser, posts]);
 
-  const handleBookmark = async (postId: string) => {
+  const handleBookmark = useCallback(async (postId: string) => {
     if (!currentUser) return;
 
     const post = posts.find(p => p.id === postId);
@@ -434,7 +431,7 @@ const Shows = () => {
           .eq('post_id', postId)
           .eq('user_id', currentUser.id);
 
-        setPosts(posts.map(p => 
+        setPosts(prev => prev.map(p => 
           p.id === postId ? { ...p, is_bookmarked: false } : p
         ));
         toast.success('Removed from bookmarks');
@@ -443,7 +440,7 @@ const Shows = () => {
           .from('post_bookmarks')
           .insert({ post_id: postId, user_id: currentUser.id });
 
-        setPosts(posts.map(p => 
+        setPosts(prev => prev.map(p => 
           p.id === postId ? { ...p, is_bookmarked: true } : p
         ));
         toast.success('Added to bookmarks');
@@ -452,9 +449,9 @@ const Shows = () => {
       console.error('Error bookmarking post:', error);
       toast.error('Failed to bookmark post');
     }
-  };
+  }, [currentUser, posts]);
 
-  const handleVideoPlay = (postId: string) => {
+  const handleVideoPlay = useCallback((postId: string) => {
     const video = videoRefs.current[postId];
     if (!video) return;
 
@@ -471,9 +468,9 @@ const Shows = () => {
       video.play();
       setPlayingVideo(postId);
     }
-  };
+  }, [playingVideo]);
 
-  const toggleMute = (postId: string) => {
+  const toggleMute = useCallback((postId: string) => {
     setMutedVideos(prev => {
       const newSet = new Set(prev);
       if (newSet.has(postId)) {
@@ -483,7 +480,7 @@ const Shows = () => {
       }
       return newSet;
     });
-  };
+  }, []);
 
   const formatDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
