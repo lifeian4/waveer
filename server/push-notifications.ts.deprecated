@@ -1,0 +1,13 @@
+/**
+ * DEPRECATED - This file is no longer used
+ * 
+ * Firebase-based push notifications have been replaced with Supabase Realtime.
+ * 
+ * Use server/notifications.ts instead for all notification functionality.
+ * 
+ * Migration completed:
+ * - Removed Firebase Admin SDK dependency
+ * - Replaced with Supabase Realtime channels
+ * - All notifications now stored in 'notifi' table
+ * - Realtime broadcasts via Supabase channels
+ */

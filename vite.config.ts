@@ -27,7 +27,6 @@ export default defineConfig(({ mode }) => ({
           'vendor-query': ['@tanstack/react-query'],
           'vendor-motion': ['framer-motion'],
           'vendor-charts': ['recharts'],
-          'vendor-firebase': ['firebase'],
           'vendor-supabase': ['@supabase/supabase-js'],
           'vendor-other': ['sonner', 'date-fns', 'lucide-react', 'clsx', 'tailwind-merge', 'class-variance-authority'],
         },
