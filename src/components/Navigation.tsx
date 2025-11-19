@@ -83,6 +83,26 @@ const Navigation = () => {
     }
   };
 
+  const handleSwitchAccount = () => {
+    // Generate OAuth state
+    const state = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+    
+    localStorage.setItem('oauth_state', state);
+    
+    // Redirect to OAuth authorize page
+    const params = new URLSearchParams({
+      client_id: 'waveer_client_123',
+      redirect_uri: window.location.origin + '/oauth/callback',
+      response_type: 'code',
+      state: state,
+      scope: 'profile email',
+    });
+    
+    window.location.href = `${window.location.origin}/oauth/authorize?${params.toString()}`;
+  };
+
   // Check verification status and fetch date of birth
   useEffect(() => {
     const checkVerificationStatus = async () => {
@@ -352,6 +372,13 @@ const Navigation = () => {
                         </DropdownMenuItem>
                       </DropdownMenuGroup>
                       <DropdownMenuSeparator />
+                      <DropdownMenuGroup>
+                        <DropdownMenuItem onClick={handleSwitchAccount} className="text-blue-500 focus:text-blue-500">
+                          <Users className="mr-2 h-4 w-4" />
+                          <span>Switch Account</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuGroup>
+                      <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={handleLogout} className="text-red-500 focus:text-red-500">
                         <LogOut className="mr-2 h-4 w-4" />
                         <span>Log out</span>
@@ -361,30 +388,46 @@ const Navigation = () => {
                   </div>
                 </>
               ) : (
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Link to="/signup">
-                    <Button 
-                      variant="hero" 
-                      size="lg" 
-                      className="rounded-full relative overflow-hidden group"
-                    >
-                      <motion.div
-                        className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-primary"
-                        animate={{
-                          x: ["-100%", "100%"],
-                        }}
-                        transition={{
-                          duration: 2,
-                          repeat: Infinity,
-                          ease: "linear",
-                        }}
-                      />
-                      <span className="relative z-10 font-bold">Sign Up</span>
-                    </Button>
-                  </Link>
+                <motion.div className="flex items-center gap-3">
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Link to="/login">
+                      <Button 
+                        variant="outline" 
+                        size="lg" 
+                        className="rounded-full"
+                      >
+                        Log In
+                      </Button>
+                    </Link>
+                  </motion.div>
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Link to="/signup">
+                      <Button 
+                        variant="hero" 
+                        size="lg" 
+                        className="rounded-full relative overflow-hidden group"
+                      >
+                        <motion.div
+                          className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-primary"
+                          animate={{
+                            x: ["-100%", "100%"],
+                          }}
+                          transition={{
+                            duration: 2,
+                            repeat: Infinity,
+                            ease: "linear",
+                          }}
+                        />
+                        <span className="relative z-10 font-bold">Sign Up</span>
+                      </Button>
+                    </Link>
+                  </motion.div>
                 </motion.div>
               )}
             </div>
