@@ -54,6 +54,7 @@ const VerifyAccount = lazy(() => import("./pages/VerifyAccount"));
 const Booster = lazy(() => import("./pages/Booster"));
 const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
+const OAuthAuthorize = lazy(() => import("./pages/OAuthAuthorize"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Loading fallback component

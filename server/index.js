@@ -83,6 +83,58 @@ app.get('/oauth/authorize', (req, res) => {
   res.redirect(redirectUrl);
 });
 
+// API endpoint for frontend to trigger OAuth authorization
+app.get('/api/oauth/authorize', (req, res) => {
+  const { client_id, redirect_uri, response_type, state, scope } = req.query;
+
+  // Validate required parameters
+  if (!client_id || !redirect_uri || !response_type || !state) {
+    return res.status(400).json({ 
+      error: 'invalid_request',
+      error_description: 'Missing required parameters: client_id, redirect_uri, response_type, state'
+    });
+  }
+
+  if (response_type !== 'code') {
+    return res.status(400).json({ 
+      error: 'unsupported_response_type',
+      error_description: 'Only response_type=code is supported'
+    });
+  }
+
+  // Store authorization request for later verification
+  const authRequest = {
+    client_id,
+    redirect_uri,
+    response_type,
+    state,
+    scope: scope || '',
+    created_at: Date.now()
+  };
+
+  // In production, store this in a database
+  const authCode = generateRandomString(32);
+  
+  if (!global.authCodes) {
+    global.authCodes = {};
+  }
+  global.authCodes[authCode] = authRequest;
+
+  // Return the redirect URL instead of redirecting
+  const redirectParams = new URLSearchParams({
+    code: authCode,
+    state: state
+  });
+
+  const redirectUrl = `${redirect_uri}${redirect_uri.includes('?') ? '&' : '?'}${redirectParams.toString()}`;
+  
+  res.json({
+    redirect_url: redirectUrl,
+    code: authCode,
+    state: state
+  });
+});
+
 // Login endpoint - redirects to Spotify authorization
 app.get('/auth/login', (req, res) => {
   const scope = 'streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state';
