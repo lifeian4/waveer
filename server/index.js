@@ -34,6 +34,55 @@ const generateRandomString = (length) => {
   return text;
 };
 
+// OAuth authorize endpoint - generic OAuth authorization handler
+app.get('/oauth/authorize', (req, res) => {
+  const { client_id, redirect_uri, response_type, state, scope } = req.query;
+
+  // Validate required parameters
+  if (!client_id || !redirect_uri || !response_type || !state) {
+    return res.status(400).json({ 
+      error: 'invalid_request',
+      error_description: 'Missing required parameters: client_id, redirect_uri, response_type, state'
+    });
+  }
+
+  if (response_type !== 'code') {
+    return res.status(400).json({ 
+      error: 'unsupported_response_type',
+      error_description: 'Only response_type=code is supported'
+    });
+  }
+
+  // Store authorization request for later verification
+  const authRequest = {
+    client_id,
+    redirect_uri,
+    response_type,
+    state,
+    scope: scope || '',
+    created_at: Date.now()
+  };
+
+  // In production, store this in a database and implement proper user authentication
+  // For now, we'll generate an authorization code
+  const authCode = generateRandomString(32);
+  
+  // Store the auth code with request details (in production, use database)
+  if (!global.authCodes) {
+    global.authCodes = {};
+  }
+  global.authCodes[authCode] = authRequest;
+
+  // Redirect to redirect_uri with authorization code and state
+  const redirectParams = new URLSearchParams({
+    code: authCode,
+    state: state
+  });
+
+  const redirectUrl = `${redirect_uri}${redirect_uri.includes('?') ? '&' : '?'}${redirectParams.toString()}`;
+  res.redirect(redirectUrl);
+});
+
 // Login endpoint - redirects to Spotify authorization
 app.get('/auth/login', (req, res) => {
   const scope = 'streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state';
@@ -48,6 +97,52 @@ app.get('/auth/login', (req, res) => {
   });
 
   res.redirect('https://accounts.spotify.com/authorize/?' + auth_query_parameters.toString());
+});
+
+// OAuth token endpoint - exchanges authorization code for access token
+app.post('/oauth/token', (req, res) => {
+  const { code, client_id, client_secret, redirect_uri, grant_type } = req.body;
+
+  if (!code || !client_id || !redirect_uri || grant_type !== 'authorization_code') {
+    return res.status(400).json({ 
+      error: 'invalid_request',
+      error_description: 'Missing required parameters or invalid grant_type'
+    });
+  }
+
+  // Retrieve the stored authorization request
+  if (!global.authCodes || !global.authCodes[code]) {
+    return res.status(400).json({ 
+      error: 'invalid_grant',
+      error_description: 'Authorization code not found or expired'
+    });
+  }
+
+  const authRequest = global.authCodes[code];
+
+  // Verify that the client_id and redirect_uri match
+  if (authRequest.client_id !== client_id || authRequest.redirect_uri !== redirect_uri) {
+    return res.status(400).json({ 
+      error: 'invalid_grant',
+      error_description: 'client_id or redirect_uri mismatch'
+    });
+  }
+
+  // Generate access token
+  const accessToken = generateRandomString(40);
+  const refreshToken = generateRandomString(40);
+
+  // Clean up the used authorization code
+  delete global.authCodes[code];
+
+  // Return token response
+  res.json({
+    access_token: accessToken,
+    token_type: 'Bearer',
+    expires_in: 3600,
+    refresh_token: refreshToken,
+    scope: authRequest.scope
+  });
 });
 
 // Callback endpoint - exchanges code for access token
