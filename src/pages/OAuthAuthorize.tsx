@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 export default function OAuthAuthorize() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { currentUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,10 +30,10 @@ export default function OAuthAuthorize() {
 
   // Redirect to login if not authenticated
   useEffect(() => {
-    if (!user) {
+    if (!currentUser) {
       navigate('/login');
     }
-  }, [user, navigate]);
+  }, [currentUser, navigate]);
 
   const handleAllow = async () => {
     if (!clientId || !redirectUri || !state) {
@@ -93,7 +93,7 @@ export default function OAuthAuthorize() {
     window.location.href = `${redirectUri}${redirectUri.includes('?') ? '&' : '?'}${errorParams.toString()}`;
   };
 
-  if (!user) {
+  if (!currentUser) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -133,16 +133,16 @@ export default function OAuthAuthorize() {
           <div className="mb-8 p-4 bg-slate-700/50 rounded-lg border border-slate-600">
             <p className="text-slate-300 text-sm mb-2">Signing in as:</p>
             <div className="flex items-center gap-3">
-              {user.avatar && (
+              {currentUser.user_metadata?.avatar_url && (
                 <img
-                  src={user.avatar}
-                  alt={user.name}
+                  src={currentUser.user_metadata.avatar_url}
+                  alt={currentUser.user_metadata?.full_name || 'User'}
                   className="w-10 h-10 rounded-full"
                 />
               )}
               <div>
-                <p className="font-semibold text-white">{user.name}</p>
-                <p className="text-slate-400 text-sm">{user.email}</p>
+                <p className="font-semibold text-white">{currentUser.user_metadata?.full_name || 'User'}</p>
+                <p className="text-slate-400 text-sm">{currentUser.email}</p>
               </div>
             </div>
           </div>
