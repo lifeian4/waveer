@@ -34,26 +34,58 @@ const generateRandomString = (length) => {
   return text;
 };
 
-// OAuth authorize endpoint - generic OAuth authorization handler
+// OAuth authorize endpoint - serves HTML page for authorization
 app.get('/oauth/authorize', (req, res) => {
   const { client_id, redirect_uri, response_type, state, scope } = req.query;
 
   // Validate required parameters
   if (!client_id || !redirect_uri || !response_type || !state) {
-    return res.status(400).json({ 
-      error: 'invalid_request',
-      error_description: 'Missing required parameters: client_id, redirect_uri, response_type, state'
-    });
+    return res.status(400).send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>OAuth Error</title>
+          <style>
+            body { font-family: Arial, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #1a1a1a; }
+            .error { background: #2a2a2a; padding: 40px; border-radius: 8px; color: #fff; text-align: center; max-width: 500px; }
+            h1 { color: #ff6b6b; margin-top: 0; }
+            p { color: #ccc; }
+          </style>
+        </head>
+        <body>
+          <div class="error">
+            <h1>Authorization Error</h1>
+            <p>Missing required parameters: client_id, redirect_uri, response_type, state</p>
+          </div>
+        </body>
+      </html>
+    `);
   }
 
   if (response_type !== 'code') {
-    return res.status(400).json({ 
-      error: 'unsupported_response_type',
-      error_description: 'Only response_type=code is supported'
-    });
+    return res.status(400).send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>OAuth Error</title>
+          <style>
+            body { font-family: Arial, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #1a1a1a; }
+            .error { background: #2a2a2a; padding: 40px; border-radius: 8px; color: #fff; text-align: center; max-width: 500px; }
+            h1 { color: #ff6b6b; margin-top: 0; }
+            p { color: #ccc; }
+          </style>
+        </head>
+        <body>
+          <div class="error">
+            <h1>Unsupported Response Type</h1>
+            <p>Only response_type=code is supported</p>
+          </div>
+        </body>
+      </html>
+    `);
   }
 
-  // Store authorization request for later verification
+  // Store authorization request
   const authRequest = {
     client_id,
     redirect_uri,
@@ -63,24 +95,292 @@ app.get('/oauth/authorize', (req, res) => {
     created_at: Date.now()
   };
 
-  // In production, store this in a database and implement proper user authentication
-  // For now, we'll generate an authorization code
+  // Generate authorization code
   const authCode = generateRandomString(32);
   
-  // Store the auth code with request details (in production, use database)
   if (!global.authCodes) {
     global.authCodes = {};
   }
   global.authCodes[authCode] = authRequest;
 
-  // Redirect to redirect_uri with authorization code and state
-  const redirectParams = new URLSearchParams({
-    code: authCode,
-    state: state
-  });
+  // Serve HTML page for authorization
+  const scopeList = scope ? scope.split('+').map(s => s.trim()) : [];
+  const appName = client_id.split('_')[0] || 'Application';
+  const encodedState = encodeURIComponent(state);
+  const encodedCode = encodeURIComponent(authCode);
+  const encodedRedirectUri = encodeURIComponent(redirect_uri);
 
-  const redirectUrl = `${redirect_uri}${redirect_uri.includes('?') ? '&' : '?'}${redirectParams.toString()}`;
-  res.redirect(redirectUrl);
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Authorize ${appName}</title>
+      <style>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+          background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+        }
+        
+        .container {
+          width: 100%;
+          max-width: 500px;
+          background: #1e293b;
+          border: 1px solid #334155;
+          border-radius: 12px;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+          overflow: hidden;
+        }
+        
+        .header {
+          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+          padding: 40px 30px;
+          text-align: center;
+        }
+        
+        .header h1 {
+          font-size: 28px;
+          color: white;
+          margin-bottom: 10px;
+          font-weight: 600;
+        }
+        
+        .header p {
+          color: rgba(255, 255, 255, 0.9);
+          font-size: 14px;
+        }
+        
+        .content {
+          padding: 40px 30px;
+        }
+        
+        .account-section {
+          background: #334155;
+          border: 1px solid #475569;
+          border-radius: 8px;
+          padding: 20px;
+          margin-bottom: 30px;
+        }
+        
+        .account-label {
+          color: #94a3b8;
+          font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 12px;
+          display: block;
+        }
+        
+        .account-info {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        
+        .avatar {
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-weight: bold;
+          font-size: 20px;
+          flex-shrink: 0;
+        }
+        
+        .account-details h3 {
+          color: white;
+          font-size: 16px;
+          margin-bottom: 4px;
+        }
+        
+        .account-details p {
+          color: #94a3b8;
+          font-size: 13px;
+        }
+        
+        .permissions-section {
+          margin-bottom: 30px;
+        }
+        
+        .permissions-label {
+          color: #cbd5e1;
+          font-size: 14px;
+          font-weight: 500;
+          margin-bottom: 16px;
+          display: block;
+        }
+        
+        .permission-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          color: #cbd5e1;
+          font-size: 14px;
+          margin-bottom: 10px;
+        }
+        
+        .permission-item:last-child {
+          margin-bottom: 0;
+        }
+        
+        .checkmark {
+          color: #10b981;
+          font-weight: bold;
+        }
+        
+        .security-notice {
+          background: rgba(59, 130, 246, 0.1);
+          border: 1px solid rgba(59, 130, 246, 0.3);
+          border-radius: 6px;
+          padding: 12px;
+          margin-bottom: 30px;
+        }
+        
+        .security-notice p {
+          color: #93c5fd;
+          font-size: 12px;
+          line-height: 1.5;
+        }
+        
+        .button-group {
+          display: flex;
+          gap: 12px;
+        }
+        
+        button {
+          flex: 1;
+          padding: 12px 20px;
+          border: none;
+          border-radius: 6px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+        
+        .btn-deny {
+          background: #334155;
+          color: #cbd5e1;
+          border: 1px solid #475569;
+        }
+        
+        .btn-deny:hover {
+          background: #475569;
+          color: #e2e8f0;
+        }
+        
+        .btn-allow {
+          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+          color: white;
+        }
+        
+        .btn-allow:hover {
+          opacity: 0.9;
+          transform: translateY(-2px);
+          box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+        }
+        
+        .footer {
+          text-align: center;
+          color: #64748b;
+          font-size: 11px;
+          line-height: 1.6;
+          padding: 0 30px 30px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Authorization Request</h1>
+          <p><strong>${appName}</strong> wants to access your Waveer account</p>
+        </div>
+        
+        <div class="content">
+          <div class="account-section">
+            <span class="account-label">Signing in as</span>
+            <div class="account-info">
+              <div class="avatar">W</div>
+              <div class="account-details">
+                <h3>Waveer User</h3>
+                <p>user@waveer.app</p>
+              </div>
+            </div>
+          </div>
+          
+          ${scopeList.length > 0 ? `
+            <div class="permissions-section">
+              <span class="permissions-label">This app will have access to:</span>
+              ${scopeList.map(s => `
+                <div class="permission-item">
+                  <span class="checkmark">✓</span>
+                  <span>${s.charAt(0).toUpperCase() + s.slice(1).replace(/[_-]/g, ' ')}</span>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+          
+          <div class="security-notice">
+            <p>🔒 Your password is never shared with third-party applications. Only the permissions you approve will be granted.</p>
+          </div>
+          
+          <div class="button-group">
+            <button class="btn-deny" onclick="denyAuthorization()">Deny</button>
+            <button class="btn-allow" onclick="allowAuthorization()">Allow</button>
+          </div>
+        </div>
+        
+        <div class="footer">
+          <p>By clicking "Allow", you authorize this application to access your Waveer account according to the permissions listed above.</p>
+        </div>
+      </div>
+      
+      <script>
+        function allowAuthorization() {
+          const redirectUri = '${encodedRedirectUri}';
+          const code = '${encodedCode}';
+          const state = '${encodedState}';
+          
+          const decodedUri = decodeURIComponent(redirectUri);
+          const separator = decodedUri.includes('?') ? '&' : '?';
+          const finalUrl = decodedUri + separator + 'code=' + code + '&state=' + state;
+          
+          window.location.href = finalUrl;
+        }
+        
+        function denyAuthorization() {
+          const redirectUri = '${encodedRedirectUri}';
+          const state = '${encodedState}';
+          
+          const decodedUri = decodeURIComponent(redirectUri);
+          const separator = decodedUri.includes('?') ? '&' : '?';
+          const finalUrl = decodedUri + separator + 'error=access_denied&error_description=User denied authorization&state=' + state;
+          
+          window.location.href = finalUrl;
+        }
+      </script>
+    </body>
+    </html>
+  `;
+
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(html);
 });
 
 // API endpoint for frontend to trigger OAuth authorization
